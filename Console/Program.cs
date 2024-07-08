@@ -1,78 +1,27 @@
-﻿using NAudio.Wave;
-using Spectre.Console;
-using YoutubeExplode;
-using YoutubeExplode.Search;
-using YoutubeExplode.Videos;
+﻿using Console;
+using Terminal.Gui;
 
-var youtubeClient = new YoutubeClient();
+Application.Init();
+var top = Application.Top;
 
-var input = AnsiConsole.Ask<string>("[red]Search videos:[/]");
-
-var videos = await AnsiConsole
-    .Status()
-    .AutoRefresh(true)
-    .Spinner(Spinner.Known.BouncingBall)
-    .SpinnerStyle(Style.Parse("red"))
-    .StartAsync(
-        $"Searching for {input.EscapeMarkup()} ...",
-        async ctx =>
-        {
-            var videos = await youtubeClient
-                .Search.GetVideosAsync(input)
-                .Take(100)
-                .Select(i => new VideoSearchResult(
-                    i.Id,
-                    i.Title.EscapeMarkup(),
-                    i.Author,
-                    i.Duration,
-                    i.Thumbnails
-                ))
-                .ToListAsync();
-            return videos;
-        }
-    );
-
-AnsiConsole.Clear();
-
-var selectedVideo = AnsiConsole.Prompt(
-    new SelectionPrompt<VideoSearchResult>()
-        .Title($"Videos found for {input.EscapeMarkup()}")
-        .PageSize(10)
-        .MoreChoicesText("[grey](Move up and down to reveal more video)[/]")
-        .AddChoices(videos)
-        .HighlightStyle(new Style(foreground: Color.Red, background: Color.Yellow))
-);
-
-var video = await youtubeClient.Videos.GetAsync(selectedVideo.Id);
-var stream = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id);
-var bestAudio = stream.GetAudioOnlyStreams().MaxBy(i => i.Bitrate);
-
-if (bestAudio is null)
+var customColors = new ColorScheme()
 {
-    AnsiConsole.Markup("[yellow]Couldn't retreive the audio[/], [red]Quitting[/]");
-    return;
-}
+    Normal = Application.Driver.MakeAttribute(Color.Red, Color.Black),
+    Focus = Application.Driver.MakeAttribute(Color.White, Color.Red),
+};
 
-using (var audioStream = new MediaFoundationReader(bestAudio.Url))
-using (var outputDevice = new WaveOutEvent())
+// Create a window and set its properties
+var win = new Window("Youtube console")
 {
-    // Initialize the output device
-    outputDevice.Init(audioStream);
+    X = 0,
+    Y = 1, // Leave one row for the toplevel menu
+    Width = Dim.Fill(),
+    Height = Dim.Fill(),
+    ColorScheme = customColors
+};
+top.Add(win);
 
-    await AnsiConsole
-        .Status()
-        .AutoRefresh(true)
-        .Spinner(Spinner.Known.Moon)
-        .SpinnerStyle(Style.Parse("red"))
-        .StartAsync(
-            $"[green]Playing: {video.Title.EscapeMarkup()}[/]",
-            async ctx =>
-            {
-                outputDevice.Play();
-                while (outputDevice.PlaybackState == PlaybackState.Playing)
-                {
-                    await Task.Delay(1000);
-                }
-            }
-        );
-}
+var options = new Options(win);
+options.ShowOptions();
+
+Application.Run();
