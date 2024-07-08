@@ -1,5 +1,11 @@
+﻿using System.Data;
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Console.Extensions;
 using NAudio.Wave;
+using NStack;
 using Terminal.Gui;
 using YoutubeExplode;
 using YoutubeExplode.Search;
@@ -30,7 +36,7 @@ public class VideoSearch
         {
             X = 1,
             Y = Pos.Bottom(label) + 1,
-            Width = 40
+            Width = 40,
         };
         _win.Add(textField);
 
@@ -49,25 +55,43 @@ public class VideoSearch
             var progressBar = _win.DisplayProgressBar();
             var task = progressBar.Start(tokenSource.Token);
 
-            var results = await _youtubeClient.Search.GetVideosAsync(text).Take(20).ToListAsync();
+            var results = await _youtubeClient.Search.GetVideosAsync(text).Take(50).ToListAsync();
             tokenSource.Cancel();
             _win.RemoveAll();
 
-            var listView = new ListView(results)
-            {
-                X = 1,
-                Y = 1,
-                Width = Dim.Fill(),
-                Height = Dim.Fill()
-            };
-            _win.Add(listView);
+            var dataTable = new DataTable();
 
-            listView.OpenSelectedItem += async (args) =>
+            dataTable.Columns.Add("Title", typeof(string));
+            dataTable.Columns.Add("Author", typeof(string));
+            dataTable.Columns.Add("Duration", typeof(string));
+
+            results.ForEach(x =>
+                dataTable.Rows.Add(
+                    x.Title,
+                    x.Author,
+                    x.Duration.GetValueOrDefault().ToString(@"hh\:mm\:ss")
+                )
+            );
+
+            var tableView = new TableView()
+            {
+                X = 0,
+                Y = 0,
+                Width = Dim.Fill(),
+                Height = Dim.Fill(),
+                FullRowSelect = true,
+                AutoSize = true,
+                Table = dataTable
+            };
+
+            _win.Add(tableView);
+
+            tableView.CellActivated += async (args) =>
             {
                 var tokenSource = new CancellationTokenSource();
                 var progressBar = _win.DisplayProgressBar();
                 var task = progressBar.Start(tokenSource.Token);
-                var item = args.Value as VideoSearchResult;
+                var item = results[args.Row];
 
                 await _player.AddAsync(item!.Id);
                 await _player.PlayAsync();

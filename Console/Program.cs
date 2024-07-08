@@ -1,7 +1,14 @@
-﻿using Console;
+﻿using System.Text;
+using Console;
 using Terminal.Gui;
 
+var useUsc = args.Any(i => i == "-usc");
+
+System.Console.OutputEncoding = Encoding.UTF8;
+Application.UseSystemConsole = useUsc;
+
 Application.Init();
+
 var top = Application.Top;
 
 var customColors = new ColorScheme()
@@ -21,7 +28,11 @@ var win = new Window("Youtube console")
 };
 top.Add(win);
 
-var options = new Options(win);
-options.ShowOptions();
+Application.MainLoop.Invoke(() =>
+{
+    var options = new Options(win);
+    options.ShowOptions();
+});
 
 Application.Run();
+Application.Shutdown();

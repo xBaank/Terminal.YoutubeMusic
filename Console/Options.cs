@@ -1,4 +1,3 @@
-using NStack;
 using Terminal.Gui;
 
 namespace Console;
@@ -33,7 +32,8 @@ public class Options(Window win)
             CanFocus = true
         };
 
-        videoSearchButton.Clicked += _videoSearch.ShowSearch;
+        videoSearchButton.Clicked += () =>
+            Application.MainLoop.Invoke(() => _videoSearch.ShowSearch());
 
         win.Add(videoSearchButton);
         win.Add(other);
