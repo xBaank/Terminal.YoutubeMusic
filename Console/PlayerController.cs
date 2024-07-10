@@ -14,6 +14,7 @@ enum State
 
 public class PlayerController : IDisposable
 {
+    private float _volume = 0.5f;
     private Queue<Video> _queue = new();
     private Video? _currentSong = null;
     private MediaFoundationReader? audioStream = null;
@@ -21,6 +22,9 @@ public class PlayerController : IDisposable
     private readonly YoutubeClient youtubeClient = new();
 
     public event Action<Video>? Playing;
+    public int Volume => (int)(_volume * 100);
+    public TimeSpan? Time => audioStream?.CurrentTime;
+    public TimeSpan? TotalTime => audioStream?.TotalTime;
 
     public PlaybackState? State => outputDevice?.PlaybackState;
 
@@ -67,7 +71,7 @@ public class PlayerController : IDisposable
         Dispose();
 
         audioStream = new MediaFoundationReader(bestAudio.Url);
-        outputDevice = new WaveOutEvent();
+        outputDevice = new WaveOutEvent() { Volume = _volume };
         outputDevice.Init(audioStream);
         outputDevice.Play();
 

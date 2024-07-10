@@ -32,7 +32,7 @@ var videosWin = new Window("Videos")
     X = 0,
     Y = Pos.Bottom(searchWin),
     Width = Dim.Fill(),
-    Height = Dim.Percent(80),
+    Height = Dim.Percent(70),
     ColorScheme = customColors
 };
 
@@ -41,7 +41,7 @@ var playerWin = new Window("Player")
     X = 0,
     Y = Pos.Bottom(videosWin),
     Width = Dim.Fill(),
-    Height = Dim.Percent(10),
+    Height = Dim.Percent(20),
     ColorScheme = customColors
 };
 
