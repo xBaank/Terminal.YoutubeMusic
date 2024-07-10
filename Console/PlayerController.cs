@@ -1,7 +1,10 @@
+using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using NAudio.Wave;
 using YoutubeExplode;
 using YoutubeExplode.Search;
 using YoutubeExplode.Videos;
+using YoutubeExplode.Videos.Streams;
 
 namespace Console;
 
@@ -22,6 +25,7 @@ public class PlayerController : IDisposable
     private readonly YoutubeClient youtubeClient = new();
 
     public event Action<Video>? Playing;
+    public event Action<IEnumerable<Video>>? QueueChanged;
     public int Volume => (int)(_volume * 100);
     public TimeSpan? Time => audioStream?.CurrentTime;
     public TimeSpan? TotalTime => audioStream?.TotalTime;
@@ -39,8 +43,23 @@ public class PlayerController : IDisposable
     public async Task<List<VideoSearchResult>> Search(string query) =>
         await youtubeClient.Search.GetVideosAsync(query).Take(50).ToListAsync();
 
-    public async Task AddAsync(VideoId id) =>
+    public async Task AddAsync(VideoId id)
+    {
         _queue.Enqueue(await youtubeClient.Videos.GetAsync(id));
+        QueueChanged?.Invoke(_queue);
+    }
+
+    private Video? GetNextSong()
+    {
+        var next = _queue.TryGet();
+
+        if (next is not null)
+        {
+            QueueChanged?.Invoke(_queue);
+        }
+
+        return next;
+    }
 
     public async Task PlayAsync()
     {
@@ -56,7 +75,7 @@ public class PlayerController : IDisposable
             return;
         }
 
-        var nextSong = _currentSong ?? _queue.TryGet();
+        var nextSong = _currentSong ?? GetNextSong();
 
         if (nextSong is null)
             return;
@@ -64,7 +83,7 @@ public class PlayerController : IDisposable
         _currentSong = nextSong;
 
         var stream = await youtubeClient.Videos.Streams.GetManifestAsync(nextSong.Id);
-        var bestAudio = stream.GetAudioOnlyStreams().MaxBy(i => i.Bitrate);
+        var bestAudio = stream.GetAudioOnlyStreams().GetWithHighestBitrate();
         if (bestAudio is null)
             return;
 

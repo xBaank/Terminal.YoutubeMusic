@@ -1,12 +1,8 @@
-﻿using System.Data;
-using Console.Extensions;
-using NAudio.Wave;
-using Terminal.Gui;
-using YoutubeExplode;
+﻿using Terminal.Gui;
 
 namespace Console.Views;
 
-public class VideoSearch(Window win, VideosResults videosResults, PlayerController player)
+public class VideoSearchView(Window win, VideosResultsView videosResults, PlayerController player)
 {
     public void ShowSearch()
     {
@@ -14,8 +10,8 @@ public class VideoSearch(Window win, VideosResults videosResults, PlayerControll
 
         var textField = new TextField("")
         {
-            X = 1,
-            Y = 1,
+            X = 0,
+            Y = Pos.Center(),
             Width = Dim.Fill(),
             Height = Dim.Fill(),
         };

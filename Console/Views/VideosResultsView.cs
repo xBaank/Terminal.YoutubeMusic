@@ -1,12 +1,11 @@
 using System.Data;
 using Console.Extensions;
-using NAudio.Utils;
 using Terminal.Gui;
 using YoutubeExplode.Search;
 
 namespace Console.Views;
 
-public class VideosResults(Window win, PlayerController playerController)
+public class VideosResultsView(Window win, PlayerController playerController)
 {
     private CancellationTokenSource tokenSource = new();
     private Task? loadingTask = null;
@@ -50,7 +49,6 @@ public class VideosResults(Window win, PlayerController playerController)
             Width = Dim.Fill(),
             Height = Dim.Fill(),
             FullRowSelect = true,
-            AutoSize = true,
             Table = dataTable
         };
 
