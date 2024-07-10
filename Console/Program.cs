@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Console;
+using Console.Views;
 using Terminal.Gui;
 
 var useUsc = args.Any(i => i == "-usc");
@@ -17,21 +18,44 @@ var customColors = new ColorScheme()
     Focus = Application.Driver.MakeAttribute(Color.White, Color.Red),
 };
 
-// Create a window and set its properties
-var win = new Window("Youtube console")
+var searchWin = new Window("Search")
 {
     X = 0,
-    Y = 1, // Leave one row for the toplevel menu
+    Y = 1,
     Width = Dim.Fill(),
-    Height = Dim.Fill(),
+    Height = Dim.Percent(10),
     ColorScheme = customColors
 };
-top.Add(win);
+
+var videosWin = new Window("Videos")
+{
+    X = 0,
+    Y = Pos.Bottom(searchWin),
+    Width = Dim.Fill(),
+    Height = Dim.Percent(80),
+    ColorScheme = customColors
+};
+
+var playerWin = new Window("Player")
+{
+    X = 0,
+    Y = Pos.Bottom(videosWin),
+    Width = Dim.Fill(),
+    Height = Dim.Percent(10),
+    ColorScheme = customColors
+};
+
+top.Add(searchWin, videosWin, playerWin);
+
+using var playerController = new PlayerController();
 
 Application.MainLoop.Invoke(() =>
 {
-    var options = new Options(win);
-    options.ShowOptions();
+    var player = new Player(playerWin, playerController);
+    var videosResults = new VideosResults(videosWin, playerController);
+    var videoSearch = new VideoSearch(searchWin, videosResults, playerController);
+    videoSearch.ShowSearch();
+    player.ShowPlayer();
 });
 
 Application.Run();
