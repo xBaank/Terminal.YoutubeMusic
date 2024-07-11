@@ -1,7 +1,6 @@
 ﻿using Console.Extensions;
 using NAudio.Wave;
 using Terminal.Gui;
-using YoutubeExplode.Videos;
 
 namespace Console.Views;
 

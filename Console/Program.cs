@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Concentus;
 using Console;
 using Console.Views;
 using Terminal.Gui;
@@ -75,3 +76,5 @@ Application.MainLoop.Invoke(() =>
 
 Application.Run();
 Application.Shutdown();
+
+await Task.Delay(-1);

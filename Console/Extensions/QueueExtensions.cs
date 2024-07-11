@@ -1,8 +1,11 @@
-public static class QueueExtensions
+namespace Console.Extensions
 {
-    public static T? TryGet<T>(this Queue<T> queue)
+    public static class QueueExtensions
     {
-        var isSome = queue.TryDequeue(out var result);
-        return isSome ? result : default;
+        public static T? TryGet<T>(this Queue<T> queue)
+        {
+            var isSome = queue.TryDequeue(out var result);
+            return isSome ? result : default;
+        }
     }
 }

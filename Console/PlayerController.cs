@@ -1,6 +1,11 @@
-using System.Collections.Immutable;
-using System.Collections.ObjectModel;
-using System.Threading;
+using System;
+using System.Reflection.PortableExecutable;
+using Concentus;
+using Concentus.Structs;
+using Console.Buffers;
+using Console.Containers.Matroska;
+using Console.DownloadHandlers;
+using Console.Extensions;
 using NAudio.Wave;
 using Nito.AsyncEx;
 using YoutubeExplode;
@@ -25,7 +30,7 @@ public class PlayerController : IDisposable
 
     private Queue<Video> _queue = new();
     private Video? _currentSong = null;
-    private MediaFoundationReader? audioStream = null;
+    private WaveStream? audioStream = null;
     private WaveOutEvent? outputDevice = null;
     private readonly YoutubeClient youtubeClient = new();
 
@@ -49,9 +54,26 @@ public class PlayerController : IDisposable
     }
 
     public TimeSpan? Time => audioStream?.CurrentTime;
-    public TimeSpan? TotalTime => audioStream?.TotalTime ?? _currentSong?.Duration;
+    public TimeSpan? TotalTime => audioStream?.TotalTime;
     public PlaybackState? State => outputDevice?.PlaybackState;
     public Video? Song => _currentSong;
+
+    /// <summary>
+    /// Converts linear short samples into interleaved byte samples, for writing to a file, waveout device, etc.
+    /// </summary>
+    /// <param name="input"></param>
+    /// <returns></returns>
+    private static byte[] ShortsToBytes(short[] input, int offset, int length)
+    {
+        byte[] processedValues = new byte[length * 2];
+        for (int i = 0; i < length; i++)
+        {
+            processedValues[i * 2] = (byte)(input[i + offset]);
+            processedValues[i * 2 + 1] = (byte)((input[i + offset] >> 8));
+        }
+
+        return processedValues;
+    }
 
     public void Dispose()
     {
@@ -66,8 +88,9 @@ public class PlayerController : IDisposable
         if (outputDevice is null)
             return;
 
-        audioStream.Position = (long)(
-            outputDevice.OutputWaveFormat.AverageBytesPerSecond * time.TotalSeconds
+        audioStream.Seek(
+            (long)(outputDevice.OutputWaveFormat.AverageBytesPerSecond * time.TotalSeconds),
+            SeekOrigin.Begin
         );
     }
 
@@ -116,18 +139,42 @@ public class PlayerController : IDisposable
 
         _currentSong = nextSong;
 
-        var url = (await youtubeClient.Videos.Streams.GetManifestAsync(nextSong.Id))
-            .GetAudioOnlyStreams()
-            .GetWithHighestBitrate()
-            ?.Url;
-
-        if (url is null)
-            return;
-
         Dispose();
 
-        audioStream = new MediaFoundationReader(url);
+        var urlHandler = new YtDownloadUrlHandler(youtubeClient, nextSong.Id);
+        var matroskaBuffer = await MatroskaPlayerBuffer.Create(urlHandler);
+        var stream = new OpusToPCMStream(matroskaBuffer);
+
+        var frames = matroskaBuffer.GetFrames(CancellationToken.None);
+
+        int sampleRate = 48000;
+        int channels = 2;
+
+        IOpusDecoder _decoder = OpusCodecFactory.CreateDecoder(sampleRate, channels);
+
+        // Decode Opus data
+
+        var decodedSamples = (
+            await frames
+                .Select(frame =>
+                {
+                    var data = frame.ToArray();
+                    var frames = OpusPacketInfo.GetNumFrames(data);
+                    var samplePerFrame = OpusPacketInfo.GetNumSamplesPerFrame(data, sampleRate);
+                    var frameSize = frames * samplePerFrame;
+                    short[] pcm = new short[frameSize * channels];
+                    _decoder.Decode(data, pcm, frameSize, false);
+                    byte[] buffer = ShortsToBytes(pcm, 0, pcm.Length);
+                    Buffer.BlockCopy(pcm, 0, buffer, 0, buffer.Length);
+                    return buffer;
+                })
+                .ToListAsync()
+        ).SelectMany(i => i).ToArray();
+
+        var stream = new MemoryStream(decodedSamples) { Position = 0 };
         outputDevice = new WaveOutEvent() { Volume = _volume };
+        audioStream = new RawSourceWaveStream(stream, new WaveFormat(sampleRate, channels));
+
         outputDevice.Init(audioStream);
         outputDevice.Play();
 

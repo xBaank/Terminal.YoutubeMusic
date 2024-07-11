@@ -1,5 +1,4 @@
-﻿using AngleSharp.Dom;
-using Terminal.Gui;
+﻿using Terminal.Gui;
 
 namespace Console.Views;
 
