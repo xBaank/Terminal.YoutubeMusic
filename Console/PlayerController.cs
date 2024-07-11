@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.Threading;
 using NAudio.Wave;
+using Nito.AsyncEx;
 using YoutubeExplode;
 using YoutubeExplode.Search;
 using YoutubeExplode.Videos;
@@ -17,7 +19,10 @@ enum State
 
 public class PlayerController : IDisposable
 {
+    private readonly AsyncLock _lock = new();
+
     private float _volume = 0.5f;
+
     private Queue<Video> _queue = new();
     private Video? _currentSong = null;
     private MediaFoundationReader? audioStream = null;
@@ -26,12 +31,26 @@ public class PlayerController : IDisposable
 
     public event Action<Video>? Playing;
     public event Action<IEnumerable<Video>>? QueueChanged;
-    public int Volume => (int)(_volume * 100);
+
+    public int Volume
+    {
+        get { return (int)(_volume * 100); }
+        set
+        {
+            if (value is < 0 or > 100)
+                return;
+
+            _volume = value / 100f;
+            if (outputDevice is not null)
+            {
+                outputDevice.Volume = _volume;
+            }
+        }
+    }
+
     public TimeSpan? Time => audioStream?.CurrentTime;
-    public TimeSpan? TotalTime => audioStream?.TotalTime;
-
+    public TimeSpan? TotalTime => audioStream?.TotalTime ?? _currentSong?.Duration;
     public PlaybackState? State => outputDevice?.PlaybackState;
-
     public Video? Song => _currentSong;
 
     public void Dispose()
@@ -45,6 +64,7 @@ public class PlayerController : IDisposable
 
     public async Task AddAsync(VideoId id)
     {
+        using var _ = await _lock.LockAsync();
         _queue.Enqueue(await youtubeClient.Videos.GetAsync(id));
         QueueChanged?.Invoke(_queue);
     }
@@ -63,6 +83,8 @@ public class PlayerController : IDisposable
 
     public async Task PlayAsync()
     {
+        using var _ = await _lock.LockAsync();
+
         if (outputDevice?.PlaybackState == PlaybackState.Playing)
         {
             return;
@@ -103,13 +125,24 @@ public class PlayerController : IDisposable
         Playing?.Invoke(nextSong);
     }
 
-    public void Pause()
+    public async Task SkipAsync()
     {
+        using (await _lock.LockAsync())
+        {
+            outputDevice?.Stop();
+            _currentSong = null;
+        }
+    }
+
+    public async Task Pause()
+    {
+        using var _ = await _lock.LockAsync();
         outputDevice?.Pause();
     }
 
-    public void Stop()
+    public async Task Stop()
     {
+        using var _ = await _lock.LockAsync();
         outputDevice?.Stop();
     }
 }
