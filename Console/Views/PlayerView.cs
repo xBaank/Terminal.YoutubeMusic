@@ -18,17 +18,43 @@ public class PlayerView(Window win, PlayerController player)
         win.RemoveAll();
         ResetTitle();
 
-        var playPauseButton = new Button("pause") { X = 0, Y = 1 };
+        var playPauseButton = new Button("pause") { X = Pos.Center(), Y = 1 };
         var nextButton = new Button("next") { X = Pos.Right(playPauseButton) + 2, Y = 1 };
 
         var volumeUpButton = new Button("+") { X = 0, Y = 1 };
         var volumeDownButton = new Button("-") { X = Pos.Right(volumeUpButton) + 2, Y = 1 };
 
+        var progressBar = new ProgressBar()
+        {
+            X = 0,
+            Y = 1,
+            Width = Dim.Fill(),
+            Height = 5,
+            Visible = true,
+            Fraction = 0.0f,
+            ProgressBarFormat = ProgressBarFormat.Simple,
+            ProgressBarStyle = ProgressBarStyle.Continuous,
+            ColorScheme = new ColorScheme
+            {
+                Normal = Application.Driver.MakeAttribute(Color.Red, Color.White)
+            }
+        };
+
+        var progressContainer = new View()
+        {
+            X = 3,
+            Y = Pos.AnchorEnd(3),
+            Width = Dim.Percent(30),
+            Height = 5,
+            CanFocus = false
+        };
+        progressContainer.Add(progressBar);
+
         var controlContainer = new View()
         {
             X = Pos.Center(),
-            Y = Pos.AnchorEnd(3),
-            Width = 20,
+            Y = Pos.Y(progressContainer),
+            Width = Dim.Percent(30),
             Height = 5,
             CanFocus = false
         };
@@ -38,11 +64,27 @@ public class PlayerView(Window win, PlayerController player)
         {
             X = Pos.AnchorEnd(15),
             Y = Pos.Y(controlContainer),
-            Width = 20,
+            Width = Dim.Percent(30),
             Height = 5,
             CanFocus = false
         };
         volumeContainer.Add(volumeUpButton, volumeDownButton);
+
+        progressBar.MouseClick += (args) =>
+        {
+            // Calculate the fraction based on the click position
+            var clickedX = args.MouseEvent.X;
+            var progressBarWidth = progressBar.Frame.Width;
+            var fraction = (float)clickedX / progressBarWidth;
+
+            // Ensure the fraction is within 0 to 1 range
+            fraction = Math.Max(0, Math.Min(1, fraction));
+
+            var timeToSeek = fraction * player.TotalTime;
+            if (timeToSeek is null)
+                return;
+            player.Seek(timeToSeek.Value);
+        };
 
         volumeUpButton.Clicked += () =>
         {
@@ -76,22 +118,36 @@ public class PlayerView(Window win, PlayerController player)
         nextButton.Clicked += async () =>
         {
             _cancellationTokenSource.Cancel();
-            ResetTitle();
             await player.SkipAsync();
             playPauseButton.Text = "pause";
+            progressBar.Fraction = 0;
+            ResetTitle();
         };
 
-        player.Playing += (Video video) =>
+        player.StateChanged += () =>
         {
             _cancellationTokenSource.Cancel();
             _cancellationTokenSource = new CancellationTokenSource();
+
+            if (player.Song is null)
+            {
+                progressBar.Fraction = 0;
+                ResetTitle();
+                return;
+            }
 
             Task.Run(
                 async () =>
                 {
                     while (!_cancellationTokenSource.Token.IsCancellationRequested)
                     {
-                        ResetTitle();
+                        Application.MainLoop.Invoke(() =>
+                        {
+                            ResetTitle();
+                            var totalTime = player.TotalTime?.TotalMilliseconds ?? 0;
+                            var currentTime = player.Time?.TotalMilliseconds ?? 0;
+                            progressBar.Fraction = (float)(currentTime / totalTime);
+                        });
                         await Task.Delay(1000, _cancellationTokenSource.Token);
                     }
                 },
@@ -99,6 +155,6 @@ public class PlayerView(Window win, PlayerController player)
             );
         };
 
-        win.Add(controlContainer, volumeContainer);
+        win.Add(controlContainer, volumeContainer, progressContainer);
     }
 }

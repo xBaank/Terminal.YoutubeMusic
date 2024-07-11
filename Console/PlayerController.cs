@@ -29,7 +29,7 @@ public class PlayerController : IDisposable
     private WaveOutEvent? outputDevice = null;
     private readonly YoutubeClient youtubeClient = new();
 
-    public event Action<Video>? Playing;
+    public event Action? StateChanged;
     public event Action<IEnumerable<Video>>? QueueChanged;
 
     public int Volume
@@ -57,6 +57,18 @@ public class PlayerController : IDisposable
     {
         audioStream?.Dispose();
         outputDevice?.Dispose();
+    }
+
+    public void Seek(TimeSpan time)
+    {
+        if (audioStream is null)
+            return;
+        if (outputDevice is null)
+            return;
+
+        audioStream.Position = (long)(
+            outputDevice.OutputWaveFormat.AverageBytesPerSecond * time.TotalSeconds
+        );
     }
 
     public async Task<List<VideoSearchResult>> Search(string query) =>
@@ -92,7 +104,7 @@ public class PlayerController : IDisposable
 
         if (outputDevice?.PlaybackState == PlaybackState.Paused && Song is not null)
         {
-            Playing?.Invoke(Song);
+            StateChanged?.Invoke();
             outputDevice.Play();
             return;
         }
@@ -119,10 +131,11 @@ public class PlayerController : IDisposable
         outputDevice.PlaybackStopped += async (_, _) =>
         {
             _currentSong = null;
+            StateChanged?.Invoke();
             await PlayAsync();
         };
 
-        Playing?.Invoke(nextSong);
+        StateChanged?.Invoke();
     }
 
     public async Task SkipAsync()
