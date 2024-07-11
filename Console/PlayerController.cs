@@ -116,14 +116,17 @@ public class PlayerController : IDisposable
 
         _currentSong = nextSong;
 
-        var stream = await youtubeClient.Videos.Streams.GetManifestAsync(nextSong.Id);
-        var bestAudio = stream.GetAudioOnlyStreams().GetWithHighestBitrate();
-        if (bestAudio is null)
+        var url = (await youtubeClient.Videos.Streams.GetManifestAsync(nextSong.Id))
+            .GetAudioOnlyStreams()
+            .GetWithHighestBitrate()
+            ?.Url;
+
+        if (url is null)
             return;
 
         Dispose();
 
-        audioStream = new MediaFoundationReader(bestAudio.Url);
+        audioStream = new MediaFoundationReader(url);
         outputDevice = new WaveOutEvent() { Volume = _volume };
         outputDevice.Init(audioStream);
         outputDevice.Play();

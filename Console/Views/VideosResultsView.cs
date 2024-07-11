@@ -36,7 +36,7 @@ public class VideosResultsView(Window win, PlayerController playerController)
 
         videoSearches.ForEach(x =>
             dataTable.Rows.Add(
-                x.Title,
+                x.Title.ToASCII(),
                 x.Author,
                 x.Duration.GetValueOrDefault().ToString(@"hh\:mm\:ss")
             )

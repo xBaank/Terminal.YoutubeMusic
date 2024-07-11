@@ -1,4 +1,5 @@
-﻿using NAudio.Wave;
+﻿using Console.Extensions;
+using NAudio.Wave;
 using Terminal.Gui;
 using YoutubeExplode.Videos;
 
@@ -11,7 +12,7 @@ public class PlayerView(Window win, PlayerController player)
     private void ResetTitle() =>
         win.Title = player.Song is null
             ? $"Playing nothing | Time: 00:00/00:00  | Volume {player.Volume}%"
-            : $"Playing: {player.Song.Title ?? "No song"} | {player.Time?.ToString(@"hh\:mm\:ss")}/{player.TotalTime?.ToString(@"hh\:mm\:ss")} | Volume {player.Volume}%";
+            : $"Playing: {player.Song.Title.ToASCII() ?? "No song"} | {player.Time?.ToString(@"hh\:mm\:ss")}/{player.TotalTime?.ToString(@"hh\:mm\:ss")} | Volume {player.Volume}%";
 
     public void ShowPlayer()
     {
