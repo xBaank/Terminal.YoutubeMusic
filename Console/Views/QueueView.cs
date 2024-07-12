@@ -1,4 +1,5 @@
-﻿using Terminal.Gui;
+﻿using Console.Audio;
+using Terminal.Gui;
 
 namespace Console.Views;
 

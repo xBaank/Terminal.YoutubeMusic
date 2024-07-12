@@ -1,4 +1,5 @@
 using System.Data;
+using Console.Audio;
 using Console.Extensions;
 using Terminal.Gui;
 using YoutubeExplode.Search;

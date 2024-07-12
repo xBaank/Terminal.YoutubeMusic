@@ -1,5 +1,7 @@
-﻿using Console.Extensions;
+﻿using Console.Audio;
+using Console.Extensions;
 using NAudio.Wave;
+using OpenTK.Audio.OpenAL;
 using Terminal.Gui;
 
 namespace Console.Views;
@@ -103,7 +105,7 @@ public class PlayerView(Window win, PlayerController player)
             if (player.State is null)
                 return;
 
-            if (player.State == PlaybackState.Playing)
+            if (player.State == ALSourceState.Playing)
             {
                 playPauseButton.Text = "play";
                 await player.Pause();

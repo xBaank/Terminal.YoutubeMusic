@@ -1,6 +1,5 @@
 ﻿using System.Text;
-using Concentus;
-using Console;
+using Console.Audio;
 using Console.Views;
 using Terminal.Gui;
 
@@ -61,7 +60,7 @@ var playerWin = new Window("Player")
 
 top.Add(queueWin, searchWin, videosWin, playerWin);
 
-using var playerController = new PlayerController();
+await using var playerController = new PlayerController();
 
 Application.MainLoop.Invoke(() =>
 {
@@ -76,5 +75,3 @@ Application.MainLoop.Invoke(() =>
 
 Application.Run();
 Application.Shutdown();
-
-await Task.Delay(-1);

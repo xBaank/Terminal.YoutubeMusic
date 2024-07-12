@@ -1,5 +1,4 @@
 ﻿using System.Net.Http.Headers;
-using AngleSharp.Dom;
 using DiscordBot.MusicPlayer.DownloadHandlers;
 
 namespace Console.Containers.Matroska;
