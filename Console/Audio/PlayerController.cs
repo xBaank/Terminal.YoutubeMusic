@@ -36,7 +36,6 @@ public class PlayerController : IAsyncDisposable
     private readonly ALContext _context;
     private readonly int _sourceId;
     private readonly ALFormat _targetFormat;
-    private readonly byte[] tmpBuffer = new byte[5000];
 
     private const int sampleRate = 48000; // Adjust this to match your actual sample rate
     private const int channels = 2;
@@ -157,33 +156,54 @@ public class PlayerController : IAsyncDisposable
 
         var urlHandler = new YtDownloadUrlHandler(youtubeClient, nextSong.Id);
         var matroskaBuffer = await MatroskaPlayerBuffer.Create(urlHandler);
-        var data = await matroskaBuffer
-            .GetFrames(CancellationToken.None)
-            .Select(i =>
-            {
-                var data = i.ToArray();
-                var frames = OpusPacketInfo.GetNumFrames(data);
-                var samplePerFrame = OpusPacketInfo.GetNumSamplesPerFrame(data, sampleRate);
-                var frameSize = frames * samplePerFrame;
-                short[] pcm = new short[frameSize * channels];
 
-                int decodedSamples = _decoder.Decode(data, pcm, frameSize);
+        //Go back with matroskaBuffer writing to a stream, the stream should have a channel for 50 packets or so.
+        //if its filled then we await in writing, at the same time when writing it should be decoded from opus.
 
-                var result = ShortsToBytes(pcm, 0, pcm.Length);
-                return result;
-            })
-            .ToListAsync();
-
-        data.ForEach(i =>
+        var task = Task.Run(async () =>
         {
-            var bufferId = AL.GenBuffer();
+            await matroskaBuffer
+                .GetFrames(CancellationToken.None)
+                .Select(i => i.ToArray())
+                .BatchAsync(50)
+                .ForEachAsync(dataList =>
+                {
+                    foreach (var data in dataList)
+                    {
+                        var frames = OpusPacketInfo.GetNumFrames(data);
+                        var samplePerFrame = OpusPacketInfo.GetNumSamplesPerFrame(data, sampleRate);
+                        var frameSize = frames * samplePerFrame;
+                        short[] pcm = new short[frameSize * channels];
+                        int decodedSamples = _decoder.Decode(data, pcm, frameSize);
+                        var result = ShortsToBytes(pcm, 0, pcm.Length);
 
-            AL.BufferData(bufferId, _targetFormat, i, sampleRate);
-            AL.SourceQueueBuffer(_sourceId, bufferId);
+                        var bufferId = AL.GenBuffer();
+                        AL.BufferData(bufferId, _targetFormat, result, sampleRate);
+                        AL.SourceQueueBuffer(_sourceId, bufferId);
+                    }
+                });
         });
 
-        AL.SourcePlay(_sourceId);
+        var task2 = Task.Run(async () =>
+        {
+            while (true)
+            {
+                AL.GetSource(_sourceId, ALGetSourcei.BuffersProcessed, out int releasedCount);
 
+                if (releasedCount > 0)
+                {
+                    int[] bufferIds = new int[releasedCount];
+                    AL.SourceUnqueueBuffers(_sourceId, releasedCount, bufferIds);
+                    AL.DeleteBuffers(bufferIds);
+                }
+
+                await Task.Delay(100);
+            }
+        });
+
+        await Task.Delay(2000);
+
+        AL.SourcePlay(_sourceId);
         StateChanged?.Invoke();
     }
 
