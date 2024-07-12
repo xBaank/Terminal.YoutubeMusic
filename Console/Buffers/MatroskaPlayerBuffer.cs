@@ -51,9 +51,7 @@ internal class MatroskaPlayerBuffer
 
     public TimeSpan TotalTime { get; private set; }
 
-    public async IAsyncEnumerable<ReadOnlyMemory<byte>> GetFrames(
-        [EnumeratorCancellation] CancellationToken cancellationToken
-    )
+    public async Task WriteFile(Stream stream, CancellationToken cancellationToken)
     {
         if (_cuePoints is null)
             throw new Exception("No cues found");
@@ -73,10 +71,19 @@ internal class MatroskaPlayerBuffer
 
         _seekToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-        foreach (var cue in clusters)
+        try
         {
-            await foreach (var i in GetCluster(cue.Cuetrack.ClusterPosition, _seekToken.Token))
-                yield return i;
+            foreach (var cue in clusters)
+                await WriteCluster(stream, cue.Cuetrack.ClusterPosition, _seekToken.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            //If only seek was canceled, we play again from the requested time
+            //Maybe recursion is not the best way to do this ?
+            if (!cancellationToken.IsCancellationRequested)
+                await WriteFile(stream, cancellationToken);
+            else
+                throw;
         }
     }
 
@@ -90,9 +97,10 @@ internal class MatroskaPlayerBuffer
         return ValueTask.FromResult(true);
     }
 
-    private async IAsyncEnumerable<ReadOnlyMemory<byte>> GetCluster(
+    private async ValueTask WriteCluster(
+        Stream stream,
         long pos,
-        [EnumeratorCancellation] CancellationToken cancellationToken
+        CancellationToken cancellationToken
     )
     {
         var cluster =
@@ -114,15 +122,20 @@ internal class MatroskaPlayerBuffer
                 continue;
             }
 
-            await foreach (var i in GetBlocks(matroskaElement, time!.Value, cancellationToken))
-                yield return i;
+            await WriteBlock(
+                stream,
+                matroskaElement,
+                time ?? throw new Exception("TimeStamp was not the first element on the cluster"),
+                cancellationToken
+            );
         }
     }
 
-    private async IAsyncEnumerable<ReadOnlyMemory<byte>> GetBlocks(
+    private async ValueTask WriteBlock(
+        Stream stream,
         MatroskaElement matroskaElement,
         TimeSpan time,
-        [EnumeratorCancellation] CancellationToken cancellationToken
+        CancellationToken cancellationToken
     )
     {
         if (matroskaElement.Id == SimpleBlock.Id)
@@ -141,12 +154,12 @@ internal class MatroskaPlayerBuffer
             CurrentTime = time + TimeSpan.FromMilliseconds(block.Timestamp);
 
             if (CurrentTime.TotalMilliseconds < _seekTime)
-                yield break;
+                return;
 
             foreach (var frame in block.GetFrames())
-                yield return frame;
+                await stream.WriteAsync(frame, cancellationToken);
 
-            yield break;
+            return;
         }
 
         //TODO handle blocks
