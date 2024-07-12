@@ -1,6 +1,5 @@
 ﻿using Console.Audio;
 using Console.Extensions;
-using NAudio.Wave;
 using OpenTK.Audio.OpenAL;
 using Terminal.Gui;
 

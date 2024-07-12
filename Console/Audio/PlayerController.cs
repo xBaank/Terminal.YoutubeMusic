@@ -1,13 +1,8 @@
-using System;
-using System.IO;
-using System.Text;
 using Concentus;
 using Concentus.Structs;
 using Console.Buffers;
-using Console.Containers.Matroska;
 using Console.DownloadHandlers;
 using Console.Extensions;
-using NAudio.Wave;
 using Nito.AsyncEx;
 using OpenTK.Audio.OpenAL;
 using YoutubeExplode;
