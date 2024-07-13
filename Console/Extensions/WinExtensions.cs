@@ -18,7 +18,8 @@ public static class WinExtensions
             ProgressBarStyle = ProgressBarStyle.Continuous,
             ColorScheme = new ColorScheme()
             {
-                Normal = new Terminal.Gui.Attribute(Color.Red, Color.Black)
+                Normal = new Terminal.Gui.Attribute(Color.Red, Color.Black),
+                HotNormal = new Terminal.Gui.Attribute(Color.Red, Color.Black),
             }
         };
 

@@ -40,30 +40,39 @@ internal class AudioSender(int sourceId, ALFormat targetFormat, CancellationToke
 
     public async Task StartSending()
     {
+        var fillBuffers = await _queue.Reader.ReadAllAsync(token).Take(50).ToListAsync();
+
+        foreach (var item in fillBuffers)
+        {
+            var buffer = AL.GenBuffer();
+            AL.BufferData(buffer, targetFormat, item, sampleRate);
+            AL.SourceQueueBuffer(sourceId, buffer);
+        }
+
         var _ = Task.Run(
             async () =>
             {
                 while (!token.IsCancellationRequested)
                 {
-                    AL.GetSource(0, ALGetSourcei.BuffersProcessed, out int releasedCount);
+                    AL.GetSource(sourceId, ALGetSourcei.BuffersProcessed, out int releasedCount);
 
                     if (releasedCount > 0)
                     {
                         int[] bufferIds = new int[releasedCount];
                         AL.SourceUnqueueBuffers(sourceId, releasedCount, bufferIds);
-                        AL.DeleteBuffers(bufferIds);
+                        foreach (var buffer in bufferIds)
+                        {
+                            var next = await _queue.Reader.ReadAsync(token);
+                            AL.BufferData(buffer, targetFormat, next, sampleRate);
+                            AL.SourceQueueBuffer(sourceId, buffer);
+                        }
                     }
 
-                    var next = await _queue.Reader.ReadAsync(token);
-                    var buffer = AL.GenBuffer();
-                    AL.BufferData(buffer, targetFormat, next, sampleRate);
-                    AL.SourceQueueBuffer(sourceId, buffer);
+                    await Task.Delay(100);
                 }
             },
             token
         );
-
-        await Task.Delay(2000);
 
         AL.SourcePlay(sourceId);
     }

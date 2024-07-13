@@ -10,6 +10,7 @@ using Console.Containers.Matroska.Parsers;
 using Console.Containers.Matroska.Types;
 using Console.Extensions;
 using DiscordBot.MusicPlayer.DownloadHandlers;
+using Terminal.Gui;
 
 namespace Console.Buffers;
 

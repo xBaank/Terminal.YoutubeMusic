@@ -1,15 +1,13 @@
-﻿using System.Text;
-using Console.Audio;
+﻿using Console.Audio;
 using Console.Views;
+using OpenTK.Audio.OpenAL;
 using Terminal.Gui;
-
-var useUsc = args.Any(i => i == "-usc");
-
-System.Console.OutputEncoding = Encoding.UTF8;
 
 Application.Init();
 
 var top = new Toplevel();
+
+OpenALLibraryNameContainer.OverridePath = "libopenal.so";
 
 var customColors = new ColorScheme
 {
