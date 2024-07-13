@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Runtime.CompilerServices;
+using Console.Audio;
 using Console.Containers.Matroska;
 using Console.Containers.Matroska.EBML;
 using Console.Containers.Matroska.Elements;
@@ -17,7 +18,7 @@ using static ElementTypes;
 internal class MatroskaPlayerBuffer
 {
     private readonly EbmlReader _ebmlReader;
-
+    private readonly AudioSender _sender;
     public readonly Stream InputStream;
     private List<AudioTrack>? _audioTracks;
     private List<CuePoint>? _cuePoints;
@@ -26,10 +27,11 @@ internal class MatroskaPlayerBuffer
     private long _seekTime;
     private CancellationTokenSource _seekToken;
 
-    private MatroskaPlayerBuffer(Stream stream)
+    private MatroskaPlayerBuffer(Stream stream, AudioSender sender)
     {
         InputStream = stream;
         _ebmlReader = new EbmlReader(stream);
+        _sender = sender;
         _seekToken = new CancellationTokenSource();
     }
 
@@ -51,7 +53,7 @@ internal class MatroskaPlayerBuffer
 
     public TimeSpan TotalTime { get; private set; }
 
-    public async Task WriteFile(Stream stream, CancellationToken cancellationToken)
+    public async Task WriteFile(CancellationToken cancellationToken)
     {
         if (_cuePoints is null)
             throw new Exception("No cues found");
@@ -74,14 +76,14 @@ internal class MatroskaPlayerBuffer
         try
         {
             foreach (var cue in clusters)
-                await WriteCluster(stream, cue.Cuetrack.ClusterPosition, _seekToken.Token);
+                await WriteCluster(cue.Cuetrack.ClusterPosition, _seekToken.Token);
         }
         catch (OperationCanceledException)
         {
             //If only seek was canceled, we play again from the requested time
             //Maybe recursion is not the best way to do this ?
             if (!cancellationToken.IsCancellationRequested)
-                await WriteFile(stream, cancellationToken);
+                await WriteFile(cancellationToken);
             else
                 throw;
         }
@@ -97,11 +99,7 @@ internal class MatroskaPlayerBuffer
         return ValueTask.FromResult(true);
     }
 
-    private async ValueTask WriteCluster(
-        Stream stream,
-        long pos,
-        CancellationToken cancellationToken
-    )
+    private async ValueTask WriteCluster(long pos, CancellationToken cancellationToken)
     {
         var cluster =
             await _ebmlReader.Read(pos, cancellationToken).PipeAsync(i => i.As(Cluster))
@@ -123,7 +121,6 @@ internal class MatroskaPlayerBuffer
             }
 
             await WriteBlock(
-                stream,
                 matroskaElement,
                 time ?? throw new Exception("TimeStamp was not the first element on the cluster"),
                 cancellationToken
@@ -132,7 +129,6 @@ internal class MatroskaPlayerBuffer
     }
 
     private async ValueTask WriteBlock(
-        Stream stream,
         MatroskaElement matroskaElement,
         TimeSpan time,
         CancellationToken cancellationToken
@@ -157,7 +153,7 @@ internal class MatroskaPlayerBuffer
                 return;
 
             foreach (var frame in block.GetFrames())
-                await stream.WriteAsync(frame, cancellationToken);
+                await _sender.Add(frame.ToArray());
 
             return;
         }
@@ -188,13 +184,14 @@ internal class MatroskaPlayerBuffer
 
     public static async ValueTask<MatroskaPlayerBuffer> Create(
         IDownloadUrlHandler downloadUrlHandler,
+        AudioSender sender,
         CancellationToken token = default
     )
     {
         var stream = await HttpSegmentedStream.Create(downloadUrlHandler, bufferSize: 1024 * 10);
         stream.CompletionOption = HttpCompletionOption.ResponseContentRead;
 
-        var playerBuffer = new MatroskaPlayerBuffer(stream);
+        var playerBuffer = new MatroskaPlayerBuffer(stream, sender);
         await playerBuffer.LoadFileInfo(token);
 
         stream.BufferSize = 9_898_989;

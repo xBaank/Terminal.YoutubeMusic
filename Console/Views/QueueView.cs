@@ -1,4 +1,5 @@
-﻿using Console.Audio;
+﻿using System.Collections.ObjectModel;
+using Console.Audio;
 using Terminal.Gui;
 
 namespace Console.Views;
@@ -21,7 +22,9 @@ public class QueueView(Window win, PlayerController playerController)
 
         playerController.QueueChanged += (queue) =>
         {
-            listView.SetSource(queue.Select(i => i.Title).ToList());
+            listView.SetSource(
+                new ObservableCollection<string>(queue.Select(i => i.Title).ToList())
+            );
         };
     }
 }

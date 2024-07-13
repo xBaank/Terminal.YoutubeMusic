@@ -37,7 +37,7 @@ public class VideosResultsView(Window win, PlayerController playerController)
 
         videoSearches.ForEach(x =>
             dataTable.Rows.Add(
-                x.Title.ToASCII(),
+                x.Title,
                 x.Author,
                 x.Duration.GetValueOrDefault().ToString(@"hh\:mm\:ss")
             )
@@ -50,12 +50,12 @@ public class VideosResultsView(Window win, PlayerController playerController)
             Width = Dim.Fill(),
             Height = Dim.Fill(),
             FullRowSelect = true,
-            Table = dataTable
+            Table = new DataTableSource(dataTable)
         };
 
         win.Add(tableView);
 
-        tableView.CellActivated += async (args) =>
+        tableView.CellActivated += async (_, args) =>
         {
             var item = videoSearches[args.Row];
 

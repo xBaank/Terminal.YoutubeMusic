@@ -9,7 +9,7 @@ public class VideoSearchView(Window win, VideosResultsView videosResults, Player
     {
         win.RemoveAll();
 
-        var textField = new TextField("")
+        var textField = new TextField
         {
             X = 0,
             Y = Pos.Center(),
@@ -17,12 +17,12 @@ public class VideoSearchView(Window win, VideosResultsView videosResults, Player
             Height = Dim.Fill(),
         };
 
-        textField.KeyPress += (args) =>
+        textField.KeyUp += (_, args) =>
         {
-            if (args.KeyEvent.Key != Key.Enter)
+            if (args.KeyCode != Key.Enter)
                 return;
 
-            Application.MainLoop.Invoke(async () =>
+            Application.Invoke(async () =>
             {
                 var text = textField.Text.ToString();
 

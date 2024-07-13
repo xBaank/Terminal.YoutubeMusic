@@ -149,56 +149,17 @@ public class PlayerController : IAsyncDisposable
 
         _currentSong = nextSong;
 
+        var sender = new AudioSender(_sourceId, _targetFormat);
         var urlHandler = new YtDownloadUrlHandler(youtubeClient, nextSong.Id);
-        var matroskaBuffer = await MatroskaPlayerBuffer.Create(urlHandler);
+        var matroskaBuffer = await MatroskaPlayerBuffer.Create(urlHandler, sender);
+
+        var task = Task.Run(() => matroskaBuffer.WriteFile(CancellationToken.None));
+        sender.StartSending();
 
         //Go back with matroskaBuffer writing to a stream, the stream should have a channel for 50 packets or so.
         //if its filled then we await in writing, at the same time when writing it should be decoded from opus.
 
-        var task = Task.Run(async () =>
-        {
-            await matroskaBuffer
-                .GetFrames(CancellationToken.None)
-                .Select(i => i.ToArray())
-                .BatchAsync(50)
-                .ForEachAsync(dataList =>
-                {
-                    foreach (var data in dataList)
-                    {
-                        var frames = OpusPacketInfo.GetNumFrames(data);
-                        var samplePerFrame = OpusPacketInfo.GetNumSamplesPerFrame(data, sampleRate);
-                        var frameSize = frames * samplePerFrame;
-                        short[] pcm = new short[frameSize * channels];
-                        int decodedSamples = _decoder.Decode(data, pcm, frameSize);
-                        var result = ShortsToBytes(pcm, 0, pcm.Length);
 
-                        var bufferId = AL.GenBuffer();
-                        AL.BufferData(bufferId, _targetFormat, result, sampleRate);
-                        AL.SourceQueueBuffer(_sourceId, bufferId);
-                    }
-                });
-        });
-
-        var task2 = Task.Run(async () =>
-        {
-            while (true)
-            {
-                AL.GetSource(_sourceId, ALGetSourcei.BuffersProcessed, out int releasedCount);
-
-                if (releasedCount > 0)
-                {
-                    int[] bufferIds = new int[releasedCount];
-                    AL.SourceUnqueueBuffers(_sourceId, releasedCount, bufferIds);
-                    AL.DeleteBuffers(bufferIds);
-                }
-
-                await Task.Delay(100);
-            }
-        });
-
-        await Task.Delay(2000);
-
-        AL.SourcePlay(_sourceId);
         StateChanged?.Invoke();
     }
 

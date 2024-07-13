@@ -6,24 +6,21 @@ using Terminal.Gui;
 var useUsc = args.Any(i => i == "-usc");
 
 System.Console.OutputEncoding = Encoding.UTF8;
-Application.UseSystemConsole = useUsc;
 
 Application.Init();
 
-Application.Driver.LeftBracket = '(';
-Application.Driver.RightBracket = ')';
+var top = new Toplevel();
 
-var top = Application.Top;
-
-var customColors = new ColorScheme()
+var customColors = new ColorScheme
 {
-    Normal = Application.Driver.MakeAttribute(Color.Gray, Color.Black),
-    Focus = Application.Driver.MakeAttribute(Color.Red, Color.Black),
-    HotFocus = Application.Driver.MakeAttribute(Color.Red, Color.Black),
+    Normal = new Terminal.Gui.Attribute(Color.Gray, Color.Black),
+    Focus = new Terminal.Gui.Attribute(Color.Red, Color.Black),
+    HotFocus = new Terminal.Gui.Attribute(Color.Red, Color.Black),
 };
 
-var queueWin = new Window("Queue")
+var queueWin = new Window
 {
+    Title = "Queue",
     X = 0,
     Y = 1,
     Width = Dim.Percent(20),
@@ -31,8 +28,9 @@ var queueWin = new Window("Queue")
     ColorScheme = customColors
 };
 
-var searchWin = new Window("Search")
+var searchWin = new Window
 {
+    Title = "Search",
     X = Pos.Right(queueWin),
     Y = 1,
     Width = Dim.Fill(),
@@ -40,8 +38,9 @@ var searchWin = new Window("Search")
     ColorScheme = customColors
 };
 
-var videosWin = new Window("Videos")
+var videosWin = new Window
 {
+    Title = "Videos",
     X = Pos.Right(queueWin),
     Y = Pos.Bottom(searchWin),
     Width = Dim.Fill(),
@@ -49,8 +48,9 @@ var videosWin = new Window("Videos")
     ColorScheme = customColors
 };
 
-var playerWin = new Window("Player")
+var playerWin = new Window
 {
+    Title = "Player",
     X = Pos.Right(queueWin),
     Y = Pos.AnchorEnd(5),
     Width = Dim.Fill(),
@@ -62,7 +62,7 @@ top.Add(queueWin, searchWin, videosWin, playerWin);
 
 await using var playerController = new PlayerController();
 
-Application.MainLoop.Invoke(() =>
+Application.Invoke(() =>
 {
     var player = new PlayerView(playerWin, playerController);
     var videosResults = new VideosResultsView(videosWin, playerController);
@@ -73,5 +73,5 @@ Application.MainLoop.Invoke(() =>
     queue.ShowQueue();
 });
 
-Application.Run();
+Application.Run(top);
 Application.Shutdown();

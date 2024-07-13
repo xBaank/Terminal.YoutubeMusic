@@ -1,5 +1,4 @@
 ﻿using Console.Audio;
-using Console.Extensions;
 using OpenTK.Audio.OpenAL;
 using Terminal.Gui;
 
@@ -12,18 +11,38 @@ public class PlayerView(Window win, PlayerController player)
     private void ResetTitle() =>
         win.Title = player.Song is null
             ? $"Playing nothing | Time: 00:00/00:00  | Volume {player.Volume}%"
-            : $"Playing: {player.Song.Title.ToASCII() ?? "No song"} | {player.Time?.ToString(@"hh\:mm\:ss")}/{player.TotalTime?.ToString(@"hh\:mm\:ss")} | Volume {player.Volume}%";
+            : $"Playing: {player.Song.Title ?? "No song"} | {player.Time?.ToString(@"hh\:mm\:ss")}/{player.TotalTime?.ToString(@"hh\:mm\:ss")} | Volume {player.Volume}%";
 
     public void ShowPlayer()
     {
         win.RemoveAll();
         ResetTitle();
 
-        var playPauseButton = new Button("pause") { X = Pos.Center(), Y = 1 };
-        var nextButton = new Button("next") { X = Pos.Right(playPauseButton) + 2, Y = 1 };
+        var playPauseButton = new Button
+        {
+            Title = "pause",
+            X = Pos.Center(),
+            Y = 1
+        };
+        var nextButton = new Button
+        {
+            Title = "next",
+            X = Pos.Right(playPauseButton) + 2,
+            Y = 1
+        };
 
-        var volumeUpButton = new Button("+") { X = 0, Y = 1 };
-        var volumeDownButton = new Button("-") { X = Pos.Right(volumeUpButton) + 2, Y = 1 };
+        var volumeUpButton = new Button
+        {
+            Title = "+",
+            X = 0,
+            Y = 1
+        };
+        var volumeDownButton = new Button
+        {
+            Title = "-",
+            X = Pos.Right(volumeUpButton) + 2,
+            Y = 1
+        };
 
         var progressBar = new ProgressBar()
         {
@@ -37,7 +56,7 @@ public class PlayerView(Window win, PlayerController player)
             ProgressBarStyle = ProgressBarStyle.Continuous,
             ColorScheme = new ColorScheme
             {
-                Normal = Application.Driver.MakeAttribute(Color.Red, Color.White)
+                Normal = new Terminal.Gui.Attribute(Color.Red, Color.White)
             }
         };
 
@@ -71,10 +90,10 @@ public class PlayerView(Window win, PlayerController player)
         };
         volumeContainer.Add(volumeUpButton, volumeDownButton);
 
-        progressBar.MouseClick += (args) =>
+        progressBar.MouseClick += (obj, args) =>
         {
             // Calculate the fraction based on the click position
-            var clickedX = args.MouseEvent.X;
+            var clickedX = args.MouseEvent.Position.X;
             var progressBarWidth = progressBar.Frame.Width;
             var fraction = (float)clickedX / progressBarWidth;
 
@@ -87,19 +106,19 @@ public class PlayerView(Window win, PlayerController player)
             player.Seek(timeToSeek.Value);
         };
 
-        volumeUpButton.Clicked += () =>
+        volumeUpButton.Accept += (_, args) =>
         {
             player.Volume += 5;
             ResetTitle();
         };
 
-        volumeDownButton.Clicked += () =>
+        volumeDownButton.Accept += (_, args) =>
         {
             player.Volume -= 5;
             ResetTitle();
         };
 
-        playPauseButton.Clicked += async () =>
+        playPauseButton.Accept += async (_, args) =>
         {
             if (player.State is null)
                 return;
@@ -116,7 +135,7 @@ public class PlayerView(Window win, PlayerController player)
             }
         };
 
-        nextButton.Clicked += async () =>
+        nextButton.Accept += async (_, args) =>
         {
             _cancellationTokenSource.Cancel();
             await player.SkipAsync();
@@ -142,7 +161,7 @@ public class PlayerView(Window win, PlayerController player)
                 {
                     while (!_cancellationTokenSource.Token.IsCancellationRequested)
                     {
-                        Application.MainLoop.Invoke(() =>
+                        Application.Invoke(() =>
                         {
                             ResetTitle();
                             var totalTime = player.TotalTime?.TotalMilliseconds ?? 0;
