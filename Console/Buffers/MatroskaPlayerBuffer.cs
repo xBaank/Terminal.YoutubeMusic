@@ -191,7 +191,7 @@ internal class MatroskaPlayerBuffer
         CancellationToken token = default
     )
     {
-        var stream = await HttpSegmentedStream.Create(downloadUrlHandler, bufferSize: 1024 * 10);
+        var stream = await HttpSegmentedStream.Create(downloadUrlHandler, bufferSize: 1024 * 50);
         stream.CompletionOption = HttpCompletionOption.ResponseContentRead;
 
         var playerBuffer = new MatroskaPlayerBuffer(stream, sender);

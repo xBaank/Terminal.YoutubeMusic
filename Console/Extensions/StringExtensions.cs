@@ -4,7 +4,8 @@ namespace Console.Extensions;
 
 internal static class StringExtensions
 {
-    private static string ToASCII(this string str)
+    // Temp fix for rare unicode chars that crash the application
+    public static string ToASCII(this string str)
     {
         var bytes = Encoding.UTF8.GetBytes(str);
         return Encoding.ASCII.GetString(bytes);

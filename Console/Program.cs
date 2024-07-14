@@ -1,6 +1,5 @@
 ﻿using Console.Audio;
 using Console.Views;
-using OpenTK.Audio.OpenAL;
 using Terminal.Gui;
 
 Application.Init();
