@@ -53,7 +53,7 @@ public class PlayerView(Window win, PlayerController player)
             Visible = true,
             Fraction = 0.0f,
             ProgressBarFormat = ProgressBarFormat.Simple,
-            ProgressBarStyle = ProgressBarStyle.Continuous,
+            ProgressBarStyle = ProgressBarStyle.MarqueeContinuous,
             ColorScheme = new ColorScheme
             {
                 Normal = new Terminal.Gui.Attribute(Color.Red, Color.White)
@@ -109,13 +109,13 @@ public class PlayerView(Window win, PlayerController player)
         volumeUpButton.Accept += (_, args) =>
         {
             player.Volume += 5;
-            Application.Invoke(() => ResetTitle());
+            ResetTitle();
         };
 
         volumeDownButton.Accept += (_, args) =>
         {
             player.Volume -= 5;
-            Application.Invoke(() => ResetTitle());
+            ResetTitle();
         };
 
         playPauseButton.Accept += async (_, args) =>
@@ -125,13 +125,13 @@ public class PlayerView(Window win, PlayerController player)
 
             if (player.State == ALSourceState.Playing)
             {
-                Application.Invoke(() => playPauseButton.Text = "play");
+                playPauseButton.Text = "play";
 
                 await player.Pause();
             }
             else
             {
-                Application.Invoke(() => playPauseButton.Text = "pause");
+                playPauseButton.Text = "pause";
                 await player.PlayAsync();
             }
         };
@@ -140,12 +140,9 @@ public class PlayerView(Window win, PlayerController player)
         {
             _cancellationTokenSource.Cancel();
             await player.SkipAsync();
-            Application.Invoke(() =>
-            {
-                playPauseButton.Text = "pause";
-                progressBar.Fraction = 0;
-                ResetTitle();
-            });
+            playPauseButton.Text = "pause";
+            progressBar.Fraction = 0;
+            ResetTitle();
         };
 
         player.StateChanged += () =>
@@ -155,11 +152,8 @@ public class PlayerView(Window win, PlayerController player)
 
             if (player.Song is null)
             {
-                Application.Invoke(() =>
-                {
-                    progressBar.Fraction = 0;
-                    ResetTitle();
-                });
+                progressBar.Fraction = 0;
+                ResetTitle();
                 return;
             }
 

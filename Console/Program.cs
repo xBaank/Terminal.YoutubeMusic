@@ -7,8 +7,6 @@ Application.Init();
 
 var top = new Toplevel();
 
-OpenALLibraryNameContainer.OverridePath = "libopenal.so";
-
 var customColors = new ColorScheme
 {
     Normal = new Terminal.Gui.Attribute(Color.Gray, Color.Black),
