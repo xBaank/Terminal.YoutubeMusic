@@ -68,6 +68,12 @@ internal class AudioSender(int sourceId, ALFormat targetFormat, CancellationToke
                         }
                     }
 
+                    AL.GetSource(sourceId, ALGetSourcei.SourceState, out int stateInt);
+                    if ((ALSourceState)stateInt == ALSourceState.Stopped)
+                    {
+                        AL.SourcePlay(sourceId);
+                    }
+
                     await Task.Delay(100);
                 }
             },

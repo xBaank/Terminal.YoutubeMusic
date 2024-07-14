@@ -51,10 +51,10 @@ internal class MatroskaPlayerBuffer
     }
 
     public TimeSpan CurrentTime { get; private set; } = TimeSpan.Zero;
-
     public TimeSpan TotalTime { get; private set; }
+    public bool HasFinished { get; private set; }
 
-    public async Task WriteFile(CancellationToken cancellationToken)
+    public async Task AddFrames(CancellationToken cancellationToken)
     {
         if (_cuePoints is null)
             throw new Exception("No cues found");
@@ -84,10 +84,12 @@ internal class MatroskaPlayerBuffer
             //If only seek was canceled, we play again from the requested time
             //Maybe recursion is not the best way to do this ?
             if (!cancellationToken.IsCancellationRequested)
-                await WriteFile(cancellationToken);
+                await AddFrames(cancellationToken);
             else
                 throw;
         }
+
+        HasFinished = true;
     }
 
     public ValueTask<bool> Seek(long timeStamp)

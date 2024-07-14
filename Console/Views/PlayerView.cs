@@ -109,13 +109,13 @@ public class PlayerView(Window win, PlayerController player)
         volumeUpButton.Accept += (_, args) =>
         {
             player.Volume += 5;
-            ResetTitle();
+            Application.Invoke(() => ResetTitle());
         };
 
         volumeDownButton.Accept += (_, args) =>
         {
             player.Volume -= 5;
-            ResetTitle();
+            Application.Invoke(() => ResetTitle());
         };
 
         playPauseButton.Accept += async (_, args) =>
@@ -125,12 +125,13 @@ public class PlayerView(Window win, PlayerController player)
 
             if (player.State == ALSourceState.Playing)
             {
-                playPauseButton.Text = "play";
+                Application.Invoke(() => playPauseButton.Text = "play");
+
                 await player.Pause();
             }
             else
             {
-                playPauseButton.Text = "pause";
+                Application.Invoke(() => playPauseButton.Text = "pause");
                 await player.PlayAsync();
             }
         };
@@ -139,9 +140,12 @@ public class PlayerView(Window win, PlayerController player)
         {
             _cancellationTokenSource.Cancel();
             await player.SkipAsync();
-            playPauseButton.Text = "pause";
-            progressBar.Fraction = 0;
-            ResetTitle();
+            Application.Invoke(() =>
+            {
+                playPauseButton.Text = "pause";
+                progressBar.Fraction = 0;
+                ResetTitle();
+            });
         };
 
         player.StateChanged += () =>
@@ -151,8 +155,11 @@ public class PlayerView(Window win, PlayerController player)
 
             if (player.Song is null)
             {
-                progressBar.Fraction = 0;
-                ResetTitle();
+                Application.Invoke(() =>
+                {
+                    progressBar.Fraction = 0;
+                    ResetTitle();
+                });
                 return;
             }
 
