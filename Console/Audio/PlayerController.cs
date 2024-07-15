@@ -44,7 +44,7 @@ public class PlayerController : IAsyncDisposable
                 return;
 
             _volume = value / 100f;
-            AL.Source(_sourceId, ALSourcef.Gain, _volume);
+            AL.Source(_sourceId, ALSourcef.Gain, _volume * 2);
         }
     }
 

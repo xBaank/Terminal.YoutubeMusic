@@ -165,9 +165,19 @@ public class PlayerView(Window win, PlayerController player)
                         Application.Invoke(() =>
                         {
                             ResetTitle();
-                            var totalTime = player.TotalTime?.TotalMilliseconds ?? 0;
-                            var currentTime = player.Time?.TotalMilliseconds ?? 0;
+                            var totalTime = Math.Floor(player.TotalTime?.TotalSeconds ?? 0);
+                            var currentTime = Math.Floor(player.Time?.TotalSeconds ?? 0);
                             progressBar.Fraction = (float)(currentTime / totalTime);
+
+                            //TODO We must set the color after initialization because hotNormal is hardcoded on terminal.gui v2
+                            if (progressBar.ColorScheme.HotNormal.Foreground != Color.Red)
+                            {
+                                progressBar.ColorScheme = new ColorScheme
+                                {
+                                    Normal = new Terminal.Gui.Attribute(Color.Red, Color.White),
+                                    HotNormal = new Terminal.Gui.Attribute(Color.Red, Color.White)
+                                };
+                            }
                         });
                         await Task.Delay(1000, _cancellationTokenSource.Token);
                     }
@@ -177,12 +187,5 @@ public class PlayerView(Window win, PlayerController player)
         };
 
         win.Add(controlContainer, volumeContainer, progressContainer);
-
-        //TODO We must set the color after initialization because hotNormal is hardcoded on terminal.gui v2
-        progressBar.ColorScheme = new ColorScheme
-        {
-            Normal = new Terminal.Gui.Attribute(Color.Red, Color.White),
-            HotNormal = new Terminal.Gui.Attribute(Color.Red, Color.White)
-        };
     }
 }
