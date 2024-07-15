@@ -26,30 +26,14 @@ public class PlayerController : IAsyncDisposable
     private readonly ALFormat _targetFormat;
     private Matroska? _matroskaPlayerBuffer = null;
     private AudioSender? _audioSender = null;
-    private CancellationTokenSource _currentSongTokenSource = new CancellationTokenSource();
+    private CancellationTokenSource _currentSongTokenSource = new();
+    private bool _disposed = false;
 
     private readonly YoutubeClient youtubeClient = new();
 
     public event Action? StateChanged;
     public event Action<IEnumerable<VideoSearchResult>>? QueueChanged;
     public event Action? OnFinish;
-
-    public PlayerController()
-    {
-        _device = ALC.OpenDevice("");
-        _context = ALC.CreateContext(_device, new ALContextAttributes());
-        ALC.MakeContextCurrent(_context);
-
-        // Check for any errors
-        if (ALC.GetError(_device) != AlcError.NoError)
-        {
-            System.Console.WriteLine("Error initializing OpenAL context");
-            return;
-        }
-
-        _sourceId = AL.GenSource();
-        _targetFormat = ALFormat.Stereo16;
-    }
 
     public int Volume
     {
@@ -69,14 +53,44 @@ public class PlayerController : IAsyncDisposable
     public ALSourceState? State => SourceState();
     public VideoSearchResult? Song => _currentSong;
 
+    public PlayerController()
+    {
+        _device = ALC.OpenDevice("");
+        _context = ALC.CreateContext(_device, new ALContextAttributes());
+        ALC.MakeContextCurrent(_context);
+
+        // Check for any errors
+        if (ALC.GetError(_device) != AlcError.NoError)
+        {
+            System.Console.WriteLine("Error initializing OpenAL context");
+            return;
+        }
+
+        _sourceId = AL.GenSource();
+        _targetFormat = ALFormat.Stereo16;
+    }
+
     public async ValueTask DisposeAsync()
     {
-        await Stop();
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+
+        await Stop().ConfigureAwait(false);
         ALC.DestroyContext(_context);
         ALC.CloseDevice(_device);
         AL.DeleteSource(_sourceId);
+
         if (_matroskaPlayerBuffer is not null)
-            await _matroskaPlayerBuffer.DisposeAsync();
+        {
+            await _matroskaPlayerBuffer.DisposeAsync().ConfigureAwait(false);
+        }
+
+        // Suppress finalization
+        GC.SuppressFinalize(this);
     }
 
     public async ValueTask Seek(TimeSpan time)
