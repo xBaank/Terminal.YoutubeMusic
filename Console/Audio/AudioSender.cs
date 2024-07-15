@@ -1,51 +1,29 @@
 ﻿using System.Threading.Channels;
-using Concentus;
-using Concentus.Structs;
 using OpenTK.Audio.OpenAL;
 
 namespace Console.Audio;
 
 internal class AudioSender(int sourceId, ALFormat targetFormat, CancellationToken token = default)
 {
-    private const int sampleRate = 48000;
-    private const int channels = 2;
-    private readonly IOpusDecoder _decoder = OpusCodecFactory.CreateDecoder(sampleRate, channels);
     private readonly Channel<byte[]> _queue = Channel.CreateBounded<byte[]>(50);
-    public int SampleRate => sampleRate;
+    public readonly int SampleRate = 48000;
+    public readonly int Channels = 2;
 
-    public int Channels => channels;
-
-    private static byte[] ShortsToBytes(short[] input, int offset, int length)
+    public void ClearBuffer()
     {
-        byte[] processedValues = new byte[length * 2];
-        for (int i = 0; i < length; i++)
-        {
-            processedValues[i * 2] = (byte)input[i + offset];
-            processedValues[i * 2 + 1] = (byte)(input[i + offset] >> 8);
-        }
-
-        return processedValues;
+        while (_queue.Reader.TryRead(out var _)) { }
     }
 
-    public async ValueTask Add(byte[] data)
-    {
-        var frames = OpusPacketInfo.GetNumFrames(data);
-        var samplePerFrame = OpusPacketInfo.GetNumSamplesPerFrame(data, sampleRate);
-        var frameSize = frames * samplePerFrame;
-        short[] pcm = new short[frameSize * channels];
-        _decoder.Decode(data, pcm, frameSize);
-        var result = ShortsToBytes(pcm, 0, pcm.Length);
-        await _queue.Writer.WriteAsync(result);
-    }
+    public async ValueTask Add(byte[] data) => await _queue.Writer.WriteAsync(data);
 
     public async Task StartSending()
     {
-        var fillBuffers = await _queue.Reader.ReadAllAsync(token).Take(50).ToListAsync();
+        var fillBuffers = await _queue.Reader.ReadAllAsync(token).Take(10).ToListAsync();
 
         foreach (var item in fillBuffers)
         {
             var buffer = AL.GenBuffer();
-            AL.BufferData(buffer, targetFormat, item, sampleRate);
+            AL.BufferData(buffer, targetFormat, item, SampleRate);
             AL.SourceQueueBuffer(sourceId, buffer);
         }
 
@@ -63,7 +41,7 @@ internal class AudioSender(int sourceId, ALFormat targetFormat, CancellationToke
                         foreach (var buffer in bufferIds)
                         {
                             var next = await _queue.Reader.ReadAsync(token);
-                            AL.BufferData(buffer, targetFormat, next, sampleRate);
+                            AL.BufferData(buffer, targetFormat, next, SampleRate);
                             AL.SourceQueueBuffer(sourceId, buffer);
                         }
                     }

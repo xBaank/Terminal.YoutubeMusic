@@ -1,6 +1,6 @@
 using Concentus;
 using Concentus.Structs;
-using Console.Buffers;
+using Console.Containers.Matroska;
 using Console.DownloadHandlers;
 using Console.Extensions;
 using Nito.AsyncEx;
@@ -10,13 +10,6 @@ using YoutubeExplode.Search;
 using YoutubeExplode.Videos;
 
 namespace Console.Audio;
-
-enum State
-{
-    Playing,
-    Paused,
-    Stopped
-}
 
 public class PlayerController : IAsyncDisposable
 {
@@ -31,10 +24,8 @@ public class PlayerController : IAsyncDisposable
     private readonly ALContext _context;
     private readonly int _sourceId;
     private readonly ALFormat _targetFormat;
-    private MatroskaPlayerBuffer? matroskaPlayerBuffer = null;
-    private const int sampleRate = 48000; // Adjust this to match your actual sample rate
-    private const int channels = 2;
-    private readonly IOpusDecoder _decoder = OpusCodecFactory.CreateDecoder(sampleRate, channels);
+    private Matroska? _matroskaPlayerBuffer = null;
+    private AudioSender? _audioSender = null;
 
     private readonly YoutubeClient youtubeClient = new();
 
@@ -71,8 +62,8 @@ public class PlayerController : IAsyncDisposable
         }
     }
 
-    public TimeSpan? Time => matroskaPlayerBuffer?.CurrentTime;
-    public TimeSpan? TotalTime => matroskaPlayerBuffer?.TotalTime ?? _currentSong?.Duration;
+    public TimeSpan? Time => _matroskaPlayerBuffer?.CurrentTime;
+    public TimeSpan? TotalTime => _matroskaPlayerBuffer?.TotalTime ?? _currentSong?.Duration;
     public ALSourceState? State => SourceState();
     public Video? Song => _currentSong;
 
@@ -82,13 +73,15 @@ public class PlayerController : IAsyncDisposable
         ALC.DestroyContext(_context);
         ALC.CloseDevice(_device);
         AL.DeleteSource(_sourceId);
-        if (matroskaPlayerBuffer is not null)
-            await matroskaPlayerBuffer.DisposeAsync();
+        if (_matroskaPlayerBuffer is not null)
+            await _matroskaPlayerBuffer.DisposeAsync();
     }
 
-    public void Seek(TimeSpan time)
+    public async ValueTask Seek(TimeSpan time)
     {
-        matroskaPlayerBuffer?.Seek((long)time.TotalMilliseconds);
+        _audioSender?.ClearBuffer();
+        if (_matroskaPlayerBuffer is not null)
+            await _matroskaPlayerBuffer.Seek((long)time.TotalMilliseconds);
     }
 
     public async Task<List<VideoSearchResult>> Search(string query) =>
@@ -142,16 +135,14 @@ public class PlayerController : IAsyncDisposable
 
         _currentSong = nextSong;
 
-        var sender = new AudioSender(_sourceId, _targetFormat);
-        var urlHandler = new YtDownloadUrlHandler(youtubeClient, nextSong.Id);
-        matroskaPlayerBuffer = await MatroskaPlayerBuffer.Create(urlHandler, sender);
+        _audioSender = new AudioSender(_sourceId, _targetFormat);
+        _matroskaPlayerBuffer = await Matroska.Create(
+            new YtDownloadUrlHandler(youtubeClient, nextSong.Id),
+            _audioSender
+        );
 
-        var __ = Task.Run(() => matroskaPlayerBuffer.AddFrames(CancellationToken.None));
-        var ___ = Task.Run(() => sender.StartSending());
-
-        //Go back with matroskaBuffer writing to a stream, the stream should have a channel for 50 packets or so.
-        //if its filled then we await in writing, at the same time when writing it should be decoded from opus.
-
+        var __ = Task.Run(() => _matroskaPlayerBuffer.AddFrames(CancellationToken.None));
+        var ___ = Task.Run(() => _audioSender.StartSending());
 
         StateChanged?.Invoke();
     }

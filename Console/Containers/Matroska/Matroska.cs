@@ -1,7 +1,9 @@
 ﻿using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Text;
+using Concentus;
+using Concentus.Structs;
 using Console.Audio;
-using Console.Containers.Matroska;
 using Console.Containers.Matroska.EBML;
 using Console.Containers.Matroska.Elements;
 using Console.Containers.Matroska.Extensions.EbmlExtensions;
@@ -12,11 +14,11 @@ using Console.Extensions;
 using DiscordBot.MusicPlayer.DownloadHandlers;
 using Terminal.Gui;
 
-namespace Console.Buffers;
+namespace Console.Containers.Matroska;
 
 using static ElementTypes;
 
-internal class MatroskaPlayerBuffer
+internal class Matroska
 {
     private readonly EbmlReader _ebmlReader;
     private readonly AudioSender _sender;
@@ -25,14 +27,17 @@ internal class MatroskaPlayerBuffer
     private List<CuePoint>? _cuePoints;
     private IMemoryOwner<byte> _memoryOwner = MemoryPool<byte>.Shared.Rent(1024);
 
+    private readonly IOpusDecoder _decoder;
+
     private long _seekTime;
     private CancellationTokenSource _seekToken;
 
-    private MatroskaPlayerBuffer(Stream stream, AudioSender sender)
+    private Matroska(Stream stream, AudioSender sender)
     {
         InputStream = stream;
         _ebmlReader = new EbmlReader(stream);
         _sender = sender;
+        _decoder = OpusCodecFactory.CreateDecoder(_sender.SampleRate, _sender.Channels);
         _seekToken = new CancellationTokenSource();
     }
 
@@ -131,6 +136,29 @@ internal class MatroskaPlayerBuffer
         }
     }
 
+    private static byte[] ShortsToBytes(short[] input, int offset, int length)
+    {
+        byte[] processedValues = new byte[length * 2];
+        for (int i = 0; i < length; i++)
+        {
+            processedValues[i * 2] = (byte)input[i + offset];
+            processedValues[i * 2 + 1] = (byte)(input[i + offset] >> 8);
+        }
+
+        return processedValues;
+    }
+
+    private async ValueTask AddOpusPacket(byte[] data)
+    {
+        var frames = OpusPacketInfo.GetNumFrames(data);
+        var samplePerFrame = OpusPacketInfo.GetNumSamplesPerFrame(data, _sender.SampleRate);
+        var frameSize = frames * samplePerFrame;
+        short[] pcm = new short[frameSize * _sender.Channels];
+        _decoder.Decode(data, pcm, frameSize);
+        var result = ShortsToBytes(pcm, 0, pcm.Length);
+        await _sender.Add(result);
+    }
+
     private async ValueTask WriteBlock(
         MatroskaElement matroskaElement,
         TimeSpan time,
@@ -156,13 +184,12 @@ internal class MatroskaPlayerBuffer
                 return;
 
             foreach (var frame in block.GetFrames())
-                await _sender.Add(frame.ToArray());
+                await AddOpusPacket(frame.ToArray());
 
             return;
         }
 
         //TODO handle blocks
-
         await _ebmlReader.Skip(matroskaElement.Size, cancellationToken);
     }
 
@@ -185,16 +212,15 @@ internal class MatroskaPlayerBuffer
         TotalTime = await segmentparser.GetDuration(token);
     }
 
-    public static async ValueTask<MatroskaPlayerBuffer> Create(
+    public static async ValueTask<Matroska> Create(
         IDownloadUrlHandler downloadUrlHandler,
         AudioSender sender,
         CancellationToken token = default
     )
     {
-        var stream = await HttpSegmentedStream.Create(downloadUrlHandler, bufferSize: 1024 * 50);
-        stream.CompletionOption = HttpCompletionOption.ResponseContentRead;
+        var stream = await HttpSegmentedStream.Create(downloadUrlHandler);
 
-        var playerBuffer = new MatroskaPlayerBuffer(stream, sender);
+        var playerBuffer = new Matroska(stream, sender);
         await playerBuffer.LoadFileInfo(token);
 
         stream.BufferSize = 9_898_989;

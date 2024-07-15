@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Headers;
+using System.Web;
 using DiscordBot.MusicPlayer.DownloadHandlers;
 
 namespace Console.Containers.Matroska;
@@ -157,15 +158,24 @@ internal sealed class HttpSegmentedStream : Stream
     public override void Write(byte[] buffer, int offset, int count) =>
         throw new NotSupportedException();
 
+    string AppendRangeToUrl(string url, long start, long end)
+    {
+        var uriBuilder = new UriBuilder(url);
+        var query = HttpUtility.ParseQueryString(uriBuilder.Query);
+        query["range"] = $"{start}-{end}";
+        uriBuilder.Query = query.ToString();
+        return uriBuilder.ToString();
+    }
+
     private async Task ReadNextChunk(CancellationToken cancellationToken)
     {
         using var httpRequestMessage = new HttpRequestMessage(
             HttpMethod.Get,
-            await _downloadUrlHandler.GetUrl()
-        );
-        httpRequestMessage.Headers.Range = new RangeHeaderValue(
-            Position,
-            Position + BufferSize - 1
+            AppendRangeToUrl(
+                await _downloadUrlHandler.GetUrl(),
+                Position,
+                Position + BufferSize - 1
+            )
         );
 
         var response = await _httpClient.SendAsync(
