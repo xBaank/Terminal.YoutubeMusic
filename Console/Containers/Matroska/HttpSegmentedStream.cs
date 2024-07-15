@@ -1,6 +1,8 @@
 ﻿using System.Net.Http.Headers;
 using System.Web;
+using Console.Extensions;
 using DiscordBot.MusicPlayer.DownloadHandlers;
+using YoutubeExplode.Videos.Streams;
 
 namespace Console.Containers.Matroska;
 
@@ -10,26 +12,21 @@ internal sealed class HttpSegmentedStream : Stream
     private readonly HttpClient _httpClient;
     private Stream? _httpStream;
     private bool _positionChanged;
-    private long _length;
 
     private HttpSegmentedStream(
         IDownloadUrlHandler downloadUrlHandler,
         HttpClient httpClient,
         long initialPos,
-        int bufferSize,
-        long length
+        int bufferSize
     )
     {
         _downloadUrlHandler = downloadUrlHandler;
         _httpClient = httpClient;
         BufferSize = bufferSize;
         Position = initialPos;
-        _length = length;
     }
 
     public int BufferSize { get; set; }
-    public HttpCompletionOption CompletionOption { get; set; } =
-        HttpCompletionOption.ResponseHeadersRead;
 
     public override bool CanRead => true;
 
@@ -37,7 +34,7 @@ internal sealed class HttpSegmentedStream : Stream
 
     public override bool CanWrite => false;
 
-    public override long Length => _length;
+    public override long Length => default;
 
     public override long Position { get; set; }
 
@@ -52,27 +49,25 @@ internal sealed class HttpSegmentedStream : Stream
         base.Dispose(disposing);
     }
 
-    //The smaller the size is the faster it will initially loaded
-    //The larger the size is the faster it will be when reading all the url data
-    public static async ValueTask<HttpSegmentedStream> Create(
-        IDownloadUrlHandler downloadUrlHandler,
-        long initialPos = 0,
-        int bufferSize = 9_898_989
-    )
-    {
-        var httpClient = new HttpClient();
-        var request = new HttpRequestMessage(HttpMethod.Head, await downloadUrlHandler.GetUrl());
-        using HttpResponseMessage response = await httpClient.SendAsync(
-            request,
-            HttpCompletionOption.ResponseHeadersRead
+    private static bool IsThrottled(string url) =>
+        !string.Equals(
+            url.TryGetQueryParameterValue("ratebypass"),
+            "yes",
+            StringComparison.OrdinalIgnoreCase
         );
 
+    public static async ValueTask<HttpSegmentedStream> Create(
+        IDownloadUrlHandler downloadUrlHandler,
+        long initialPos = 0
+    )
+    {
+        var url = await downloadUrlHandler.GetUrl();
+        var httpClient = new HttpClient();
         return new HttpSegmentedStream(
             downloadUrlHandler,
             httpClient,
             initialPos,
-            bufferSize,
-            response.Content.Headers.ContentLength!.Value
+            !IsThrottled(url) ? await downloadUrlHandler.GetSize() : 9_898_989
         );
     }
 
@@ -169,24 +164,15 @@ internal sealed class HttpSegmentedStream : Stream
 
     private async Task ReadNextChunk(CancellationToken cancellationToken)
     {
-        using var httpRequestMessage = new HttpRequestMessage(
-            HttpMethod.Get,
+        if (_httpStream is not null)
+            await _httpStream.DisposeAsync();
+
+        _httpStream = await _httpClient.GetStreamAsync(
             AppendRangeToUrl(
                 await _downloadUrlHandler.GetUrl(),
                 Position,
                 Position + BufferSize - 1
             )
         );
-
-        var response = await _httpClient.SendAsync(
-            httpRequestMessage,
-            CompletionOption,
-            cancellationToken
-        );
-
-        if (_httpStream is not null)
-            await _httpStream.DisposeAsync();
-
-        _httpStream = await response.Content.ReadAsStreamAsync(cancellationToken);
     }
 }

@@ -27,6 +27,12 @@ public class YtDownloadUrlHandler : IDownloadUrlHandler
         return _value!.GetAudioManifestAsync().GetUrl();
     }
 
+    public async Task<int> GetSize()
+    {
+        LoadCache();
+        return (int)(await _value!.GetAudioManifestAsync())!.Size.Bytes;
+    }
+
     private void LoadCache()
     {
         if (_value is not null && _nextUpdate <= DateTime.Now)

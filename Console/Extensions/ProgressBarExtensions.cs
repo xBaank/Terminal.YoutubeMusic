@@ -13,7 +13,7 @@ public static class ProgressBarExtensions
 
             progressBar.Fraction += 0.05f;
             Application.Refresh();
-            await Task.Delay(50);
+            await Task.Delay(100);
         }
         progressBar.Visible = false;
     }

@@ -90,7 +90,7 @@ public class PlayerView(Window win, PlayerController player)
         };
         volumeContainer.Add(volumeUpButton, volumeDownButton);
 
-        progressBar.MouseClick += (obj, args) =>
+        progressBar.MouseClick += async (obj, args) =>
         {
             // Calculate the fraction based on the click position
             var clickedX = args.MouseEvent.Position.X;
@@ -103,7 +103,7 @@ public class PlayerView(Window win, PlayerController player)
             var timeToSeek = fraction * player.TotalTime;
             if (timeToSeek is null)
                 return;
-            player.Seek(timeToSeek.Value);
+            await player.Seek(timeToSeek.Value);
         };
 
         volumeUpButton.Accept += (_, args) =>
@@ -143,6 +143,7 @@ public class PlayerView(Window win, PlayerController player)
             playPauseButton.Text = "pause";
             progressBar.Fraction = 0;
             ResetTitle();
+            await player.PlayAsync();
         };
 
         player.StateChanged += () =>

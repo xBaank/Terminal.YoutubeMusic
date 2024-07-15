@@ -1,6 +1,9 @@
-﻿using Console.Audio;
+﻿using Console;
+using Console.Audio;
 using Console.Views;
 using Terminal.Gui;
+
+Utils.ConfigurePlatformDependencies();
 
 Application.Init();
 

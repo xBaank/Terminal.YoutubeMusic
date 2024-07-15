@@ -63,7 +63,7 @@ public class VideosResultsView(Window win, PlayerController playerController)
 
             await Task.Run(async () =>
             {
-                await playerController.AddAsync(item!.Id);
+                await playerController.AddAsync(item);
                 await playerController.PlayAsync();
             });
         };
