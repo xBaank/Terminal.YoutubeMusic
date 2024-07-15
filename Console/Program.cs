@@ -8,6 +8,7 @@ Utils.ConfigurePlatformDependencies();
 Application.Init();
 
 var top = new Toplevel();
+top.KeyBindings.Add(Key.C.WithCtrl, Command.QuitToplevel);
 
 var customColors = new ColorScheme
 {
@@ -59,17 +60,15 @@ var playerWin = new Window
 top.Add(queueWin, searchWin, videosWin, playerWin);
 
 await using var playerController = new PlayerController();
-
-Application.Invoke(() =>
-{
-    var player = new PlayerView(playerWin, playerController);
-    var videosResults = new VideosResultsView(videosWin, playerController);
-    var videoSearch = new VideoSearchView(searchWin, videosResults, playerController);
-    var queue = new QueueView(queueWin, playerController);
-    videoSearch.ShowSearch();
-    player.ShowPlayer();
-    queue.ShowQueue();
-});
+var player = new PlayerView(playerWin, playerController);
+var videosResults = new VideosResultsView(videosWin, playerController);
+var videoSearch = new VideoSearchView(searchWin, videosResults, playerController);
+var queue = new QueueView(queueWin, playerController);
+videoSearch.ShowSearch();
+player.ShowPlayer();
+queue.ShowQueue();
 
 Application.Run(top);
+
+top.Dispose();
 Application.Shutdown();
