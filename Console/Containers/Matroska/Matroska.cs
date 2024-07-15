@@ -24,14 +24,16 @@ internal class Matroska
     private readonly EbmlReader _ebmlReader;
     private readonly AudioSender _sender;
     public readonly Stream InputStream;
+    private readonly IOpusDecoder _decoder;
+
     private List<AudioTrack>? _audioTracks;
     private List<CuePoint>? _cuePoints;
     private IMemoryOwner<byte> _memoryOwner = MemoryPool<byte>.Shared.Rent(1024);
-
-    private readonly IOpusDecoder _decoder;
-
+    private bool _hasFinishEventFired = false;
     private long _seekTime;
     private CancellationTokenSource _seekToken;
+
+    public event Action? OnFinish;
 
     private Matroska(Stream stream, AudioSender sender)
     {
@@ -58,7 +60,6 @@ internal class Matroska
 
     public TimeSpan CurrentTime { get; private set; } = TimeSpan.Zero;
     public TimeSpan TotalTime { get; private set; }
-    public bool HasFinished { get; private set; }
 
     public async Task AddFrames(CancellationToken cancellationToken)
     {
@@ -95,7 +96,11 @@ internal class Matroska
                 throw;
         }
 
-        HasFinished = true;
+        if (!_hasFinishEventFired)
+        {
+            OnFinish?.Invoke();
+            _hasFinishEventFired = true;
+        }
     }
 
     public ValueTask<bool> Seek(long timeStamp)

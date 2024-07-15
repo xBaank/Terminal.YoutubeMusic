@@ -28,7 +28,6 @@ public class QueueView(Window win, PlayerController playerController)
             listView.SetSource(
                 new ObservableCollection<string>(queue.Select(i => i.Title.ToASCII()).ToList())
             );
-            Application.Refresh();
         };
     }
 }

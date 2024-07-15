@@ -153,7 +153,7 @@ internal sealed class HttpSegmentedStream : Stream
     public override void Write(byte[] buffer, int offset, int count) =>
         throw new NotSupportedException();
 
-    string AppendRangeToUrl(string url, long start, long end)
+    private static string AppendRangeToUrl(string url, long start, long end)
     {
         var uriBuilder = new UriBuilder(url);
         var query = HttpUtility.ParseQueryString(uriBuilder.Query);
@@ -172,7 +172,8 @@ internal sealed class HttpSegmentedStream : Stream
                 await _downloadUrlHandler.GetUrl(),
                 Position,
                 Position + BufferSize - 1
-            )
+            ),
+            cancellationToken
         );
     }
 }

@@ -16,14 +16,16 @@ public static class WinExtensions
             Visible = true,
             Fraction = 0.0f,
             ProgressBarStyle = ProgressBarStyle.Continuous,
-            ColorScheme = new ColorScheme()
-            {
-                Normal = new Terminal.Gui.Attribute(Color.Red, Color.Black),
-                HotNormal = new Terminal.Gui.Attribute(Color.Red, Color.Black),
-            }
         };
 
         window.Add(progressBar);
+
+        progressBar.ColorScheme = new ColorScheme()
+        {
+            Normal = new Terminal.Gui.Attribute(Color.Red, Color.Black),
+            HotNormal = new Terminal.Gui.Attribute(Color.Red, Color.Black),
+        };
+
         Application.Refresh();
 
         return progressBar;

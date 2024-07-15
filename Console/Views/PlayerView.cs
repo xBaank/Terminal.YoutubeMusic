@@ -1,4 +1,5 @@
 ﻿using Console.Audio;
+using Console.Extensions;
 using OpenTK.Audio.OpenAL;
 using Terminal.Gui;
 
@@ -11,7 +12,7 @@ public class PlayerView(Window win, PlayerController player)
     private void ResetTitle() =>
         win.Title = player.Song is null
             ? $"Playing nothing | Time: 00:00/00:00  | Volume {player.Volume}%"
-            : $"Playing: {player.Song.Title ?? "No song"} | {player.Time?.ToString(@"hh\:mm\:ss")}/{player.TotalTime?.ToString(@"hh\:mm\:ss")} | Volume {player.Volume}%";
+            : $"Playing: {player.Song.Title.ToASCII() ?? "No song"} | {player.Time?.ToString(@"hh\:mm\:ss")}/{player.TotalTime?.ToString(@"hh\:mm\:ss")} | Volume {player.Volume}%";
 
     public void ShowPlayer()
     {
@@ -52,12 +53,7 @@ public class PlayerView(Window win, PlayerController player)
             Height = 5,
             Visible = true,
             Fraction = 0.0f,
-            ProgressBarFormat = ProgressBarFormat.Simple,
-            ProgressBarStyle = ProgressBarStyle.MarqueeContinuous,
-            ColorScheme = new ColorScheme
-            {
-                Normal = new Terminal.Gui.Attribute(Color.Red, Color.White)
-            }
+            ProgressBarStyle = ProgressBarStyle.Continuous,
         };
 
         var progressContainer = new View()
@@ -136,7 +132,7 @@ public class PlayerView(Window win, PlayerController player)
             }
         };
 
-        nextButton.Accept += async (_, args) =>
+        async Task NextSong()
         {
             _cancellationTokenSource.Cancel();
             await player.SkipAsync();
@@ -144,7 +140,10 @@ public class PlayerView(Window win, PlayerController player)
             progressBar.Fraction = 0;
             ResetTitle();
             await player.PlayAsync();
-        };
+        }
+
+        nextButton.Accept += async (_, args) => await NextSong();
+        player.OnFinish += async () => await NextSong();
 
         player.StateChanged += () =>
         {
@@ -178,5 +177,12 @@ public class PlayerView(Window win, PlayerController player)
         };
 
         win.Add(controlContainer, volumeContainer, progressContainer);
+
+        //TODO We must set the color after initialization because hotNormal is hardcoded on terminal.gui v2
+        progressBar.ColorScheme = new ColorScheme
+        {
+            Normal = new Terminal.Gui.Attribute(Color.Red, Color.White),
+            HotNormal = new Terminal.Gui.Attribute(Color.Red, Color.White)
+        };
     }
 }

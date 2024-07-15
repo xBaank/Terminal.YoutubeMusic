@@ -32,6 +32,7 @@ public class PlayerController : IAsyncDisposable
 
     public event Action? StateChanged;
     public event Action<IEnumerable<VideoSearchResult>>? QueueChanged;
+    public event Action? OnFinish;
 
     public PlayerController()
     {
@@ -113,7 +114,7 @@ public class PlayerController : IAsyncDisposable
 
     public async Task PlayAsync()
     {
-        using var _ = await _lock.LockAsync();
+        using var _l = await _lock.LockAsync();
 
         if (SourceState() == ALSourceState.Playing)
         {
@@ -146,8 +147,10 @@ public class PlayerController : IAsyncDisposable
             _currentSongTokenSource.Token
         );
 
-        var __ = Task.Run(() => _matroskaPlayerBuffer.AddFrames(_currentSongTokenSource.Token));
-        var ___ = Task.Run(() => _audioSender.StartSending(_currentSongTokenSource.Token));
+        _matroskaPlayerBuffer.OnFinish += OnFinish;
+
+        _ = Task.Run(() => _matroskaPlayerBuffer.AddFrames(_currentSongTokenSource.Token));
+        _ = Task.Run(() => _audioSender.StartSending(_currentSongTokenSource.Token));
 
         StateChanged?.Invoke();
     }
