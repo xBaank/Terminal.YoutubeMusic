@@ -4,30 +4,26 @@ namespace Console.Extensions;
 
 public static class WinExtensions
 {
-    public static ProgressBar DisplayProgressBar(this Window window)
+    public static View DisplayProgressBar(this Window window)
     {
         window.RemoveAll();
 
-        var progressBar = new ProgressBar()
+        var spinnerBar = new SpinnerView
         {
             X = Pos.Center(),
             Y = Pos.Center(),
-            Width = 40,
+            Width = Dim.Auto(),
+            Height = Dim.Auto(),
             Visible = true,
-            Fraction = 0.0f,
-            ProgressBarStyle = ProgressBarStyle.Continuous,
+            Style = new SpinnerStyle.Dots(),
+            SpinDelay = 50,
+            AutoSpin = true,
         };
 
-        window.Add(progressBar);
-
-        progressBar.ColorScheme = new ColorScheme()
-        {
-            Normal = new Terminal.Gui.Attribute(Color.Red, Color.Black),
-            HotNormal = new Terminal.Gui.Attribute(Color.Red, Color.Black),
-        };
+        window.Add(spinnerBar);
 
         Application.Refresh();
 
-        return progressBar;
+        return spinnerBar;
     }
 }

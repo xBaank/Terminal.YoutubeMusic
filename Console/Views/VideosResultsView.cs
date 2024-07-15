@@ -8,21 +8,31 @@ namespace Console.Views;
 
 public class VideosResultsView(Window win, PlayerController playerController)
 {
-    private CancellationTokenSource tokenSource = new();
-    private Task? loadingTask = null;
+    private SpinnerView? spinner = null;
 
     public void ShowLoading()
     {
-        tokenSource = new CancellationTokenSource();
-        var progressBar = win.DisplayProgressBar();
-        loadingTask = progressBar.Start(tokenSource.Token);
+        win.RemoveAll();
+
+        spinner?.Dispose();
+        spinner = new SpinnerView
+        {
+            X = Pos.Center(),
+            Y = Pos.Center(),
+            Width = Dim.Auto(),
+            Height = Dim.Auto(),
+            Visible = true,
+            Style = new SpinnerStyle.BouncingBall(),
+            AutoSpin = true,
+        };
+
+        win.Add(spinner);
     }
 
-    public async Task HideLoading()
+    public void HideLoading()
     {
-        tokenSource.Cancel();
-        if (loadingTask is not null)
-            await loadingTask.ConfigureAwait(false);
+        spinner?.Dispose();
+        win.Remove(spinner);
     }
 
     public void ShowVideos(List<VideoSearchResult> videoSearches)

@@ -31,7 +31,7 @@ public class VideoSearchView(Window win, VideosResultsView videosResults, Player
 
                 videosResults.ShowLoading();
                 var results = await player.Search(text);
-                await videosResults.HideLoading();
+                videosResults.HideLoading();
 
                 videosResults.ShowVideos(results);
             });
