@@ -20,8 +20,9 @@ internal class AudioSender(int sourceId, ALFormat targetFormat)
 
     private async ValueTask ClearBufferAL(CancellationToken token)
     {
-        AL.SourceStop(sourceId);
+        AL.GetSource(sourceId, ALGetSourcei.SourceState, out int initialState);
 
+        AL.SourceStop(sourceId);
         AL.GetSource(sourceId, ALGetSourcei.BuffersQueued, out int queuedCount);
 
         if (queuedCount > 0)
@@ -37,7 +38,17 @@ internal class AudioSender(int sourceId, ALFormat targetFormat)
         }
 
         _clearBuffer = false;
-        AL.SourcePlay(sourceId);
+
+        if ((ALSourceState)initialState == ALSourceState.Playing)
+        {
+            AL.SourcePlay(sourceId);
+        }
+
+        if ((ALSourceState)initialState == ALSourceState.Paused)
+        {
+            AL.SourcePlay(sourceId);
+            AL.SourcePause(sourceId);
+        }
     }
 
     public async Task StartSending(CancellationToken token = default)
@@ -61,17 +72,9 @@ internal class AudioSender(int sourceId, ALFormat targetFormat)
                 {
                     while (!token.IsCancellationRequested)
                     {
-                        AL.GetSource(sourceId, ALGetSourcei.SourceState, out int stateInt);
-
                         if (_clearBuffer)
                         {
                             await ClearBufferAL(token);
-                            continue;
-                        }
-
-                        if ((ALSourceState)stateInt == ALSourceState.Paused)
-                        {
-                            await Task.Delay(100);
                             continue;
                         }
 
@@ -92,6 +95,8 @@ internal class AudioSender(int sourceId, ALFormat targetFormat)
                                 AL.SourceQueueBuffer(sourceId, buffer);
                             }
                         }
+
+                        AL.GetSource(sourceId, ALGetSourcei.SourceState, out int stateInt);
 
                         if ((ALSourceState)stateInt == ALSourceState.Stopped)
                         {
