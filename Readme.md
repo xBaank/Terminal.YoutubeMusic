@@ -10,3 +10,6 @@ Listen to youtube video from the terminal
 - Almost no CPU usage 
 - Small memory usage
 - No dependencies (No MPV, no yt-dlp or youtube-dl)
+
+## How to run
+- Run `dotnet Console.dll`
