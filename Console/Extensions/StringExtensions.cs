@@ -1,20 +1,24 @@
 ﻿using System.Text;
+using System.Text.RegularExpressions;
 using System.Web;
 
 namespace Console.Extensions;
 
 internal static class StringExtensions
 {
-    // Temp fix for rare unicode chars that crash the application
-    public static string ToASCII(this object obj)
+    // Temp fix
+    // ref https://github.com/gui-cs/Terminal.Gui/issues/2616
+    public static string Sanitize(this object obj)
     {
         var str = obj.ToString();
 
         if (str == null)
             return "";
 
-        var bytes = Encoding.UTF8.GetBytes(str.ToString());
-        return Encoding.ASCII.GetString(bytes);
+        var normalizedString = str.Normalize(NormalizationForm.FormD);
+        var pattern = @"\p{M}|[\uD800-\uDBFF][\uDC00-\uDFFF]";
+        var output = Regex.Replace(normalizedString, pattern, string.Empty);
+        return output.Normalize(NormalizationForm.FormC);
     }
 
     public static string? TryGetQueryParameterValue(this string url, string parameterName)

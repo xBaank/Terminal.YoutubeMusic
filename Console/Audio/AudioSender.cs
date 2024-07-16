@@ -61,9 +61,17 @@ internal class AudioSender(int sourceId, ALFormat targetFormat)
                 {
                     while (!token.IsCancellationRequested)
                     {
+                        AL.GetSource(sourceId, ALGetSourcei.SourceState, out int stateInt);
+
                         if (_clearBuffer)
                         {
                             await ClearBufferAL(token);
+                            continue;
+                        }
+
+                        if ((ALSourceState)stateInt == ALSourceState.Paused)
+                        {
+                            await Task.Delay(100);
                             continue;
                         }
 
@@ -85,7 +93,6 @@ internal class AudioSender(int sourceId, ALFormat targetFormat)
                             }
                         }
 
-                        AL.GetSource(sourceId, ALGetSourcei.SourceState, out int stateInt);
                         if ((ALSourceState)stateInt == ALSourceState.Stopped)
                         {
                             AL.SourcePlay(sourceId);

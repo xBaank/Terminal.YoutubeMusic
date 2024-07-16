@@ -50,8 +50,8 @@ public class VideosResultsView(Window win, PlayerController playerController)
             if (search is VideoSearchResult videoSearchResult)
             {
                 dataTable.Rows.Add(
-                    videoSearchResult.ToASCII(),
-                    videoSearchResult.Author.ChannelTitle.ToASCII(),
+                    videoSearchResult.Sanitize(),
+                    videoSearchResult.Author.ChannelTitle.Sanitize(),
                     videoSearchResult.Duration.GetValueOrDefault().ToString(@"hh\:mm\:ss")
                 );
 
@@ -61,8 +61,8 @@ public class VideosResultsView(Window win, PlayerController playerController)
             if (search is PlaylistSearchResult playlistSearchResult)
             {
                 dataTable.Rows.Add(
-                    playlistSearchResult.ToASCII(),
-                    playlistSearchResult?.Author?.ChannelTitle?.ToASCII() ?? "",
+                    playlistSearchResult.Sanitize(),
+                    playlistSearchResult?.Author?.ChannelTitle?.Sanitize() ?? "",
                     ""
                 );
 
@@ -71,7 +71,7 @@ public class VideosResultsView(Window win, PlayerController playerController)
 
             if (search is ChannelSearchResult channelSearchResult)
             {
-                dataTable.Rows.Add(channelSearchResult.ToASCII(), "", "");
+                //Skip channels
                 continue;
             }
         }

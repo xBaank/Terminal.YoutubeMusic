@@ -26,7 +26,7 @@ public class QueueView(Window win, PlayerController playerController)
         playerController.QueueChanged += (queue) =>
         {
             listView.SetSource(
-                new ObservableCollection<string>(queue.Select(i => i.Title.ToASCII()).ToList())
+                new ObservableCollection<string>(queue.Select(i => i.Title.Sanitize()).ToList())
             );
         };
     }

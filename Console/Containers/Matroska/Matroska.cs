@@ -224,16 +224,9 @@ internal class Matroska
         CancellationToken token = default
     )
     {
-        var stopWatch = new Stopwatch();
-        stopWatch.Start();
-
         var stream = await HttpSegmentedStream.Create(downloadUrlHandler);
-
         var playerBuffer = new Matroska(stream, sender);
         await playerBuffer.LoadFileInfo(token);
-
-        stopWatch.Stop();
-        System.Console.WriteLine(stopWatch.Elapsed.ToString());
 
         return playerBuffer;
     }
