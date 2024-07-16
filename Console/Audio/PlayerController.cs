@@ -1,3 +1,4 @@
+using System.Data;
 using Concentus;
 using Concentus.Structs;
 using Console.Containers.Matroska;
@@ -8,6 +9,7 @@ using OpenTK.Audio.OpenAL;
 using YoutubeExplode;
 using YoutubeExplode.Search;
 using YoutubeExplode.Videos;
+using static Terminal.Gui.SpinnerStyle;
 
 namespace Console.Audio;
 
@@ -17,8 +19,8 @@ public class PlayerController : IAsyncDisposable
 
     private float _volume = 0.5f;
 
-    private Queue<VideoSearchResult> _queue = new();
-    private VideoSearchResult? _currentSong = null;
+    private Queue<IVideo> _queue = new();
+    private IVideo? _currentSong = null;
 
     private readonly ALDevice _device;
     private readonly ALContext _context;
@@ -32,7 +34,7 @@ public class PlayerController : IAsyncDisposable
     private readonly YoutubeClient youtubeClient = new();
 
     public event Action? StateChanged;
-    public event Action<IEnumerable<VideoSearchResult>>? QueueChanged;
+    public event Action<IEnumerable<IVideo>>? QueueChanged;
     public event Action? OnFinish;
 
     public int Volume
@@ -51,7 +53,7 @@ public class PlayerController : IAsyncDisposable
     public TimeSpan? Time => _matroskaPlayerBuffer?.CurrentTime;
     public TimeSpan? TotalTime => _matroskaPlayerBuffer?.TotalTime ?? _currentSong?.Duration;
     public ALSourceState? State => SourceState();
-    public VideoSearchResult? Song => _currentSong;
+    public IVideo? Song => _currentSong;
 
     public PlayerController()
     {
@@ -100,17 +102,40 @@ public class PlayerController : IAsyncDisposable
             await _matroskaPlayerBuffer.Seek((long)time.TotalMilliseconds);
     }
 
-    public async Task<List<VideoSearchResult>> Search(string query) =>
-        await youtubeClient.Search.GetVideosAsync(query).Take(50).ToListAsync();
+    public async Task<List<ISearchResult>> Search(string query) =>
+        await youtubeClient.Search.GetResultsAsync(query).Take(50).ToListAsync();
 
-    public async Task AddAsync(VideoSearchResult video)
+    public async Task AddAsync(ISearchResult item)
     {
         using var _ = await _lock.LockAsync();
-        _queue.Enqueue(video);
+
+        if (item is VideoSearchResult videoSearchResult)
+        {
+            _queue.Enqueue(videoSearchResult);
+        }
+
+        if (item is PlaylistSearchResult playlistSearchResult)
+        {
+            var videos = await youtubeClient
+                .Playlists.GetVideosAsync(playlistSearchResult.Id)
+                .ToListAsync();
+
+            videos.ForEach(video => _queue.Enqueue(video));
+        }
+
+        if (item is ChannelSearchResult channelSearchResult)
+        {
+            var videos = await youtubeClient
+                .Channels.GetUploadsAsync(channelSearchResult.Id)
+                .ToListAsync();
+
+            videos.ForEach(video => _queue.Enqueue(video));
+        }
+
         QueueChanged?.Invoke(_queue);
     }
 
-    private ValueTask<VideoSearchResult?> GetNextSong()
+    private ValueTask<IVideo?> GetNextSong()
     {
         var next = _queue.TryGet();
 

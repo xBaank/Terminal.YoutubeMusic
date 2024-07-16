@@ -35,7 +35,7 @@ public class VideosResultsView(Window win, PlayerController playerController)
         win.Remove(spinner);
     }
 
-    public void ShowVideos(List<VideoSearchResult> videoSearches)
+    public void ShowVideos(List<ISearchResult> videoSearches)
     {
         win.RemoveAll();
 
@@ -45,13 +45,36 @@ public class VideosResultsView(Window win, PlayerController playerController)
         dataTable.Columns.Add("Author", typeof(string));
         dataTable.Columns.Add("Duration", typeof(string));
 
-        videoSearches.ForEach(x =>
-            dataTable.Rows.Add(
-                x.Title.ToASCII(),
-                x.Author.ChannelTitle.ToASCII(),
-                x.Duration.GetValueOrDefault().ToString(@"hh\:mm\:ss")
-            )
-        );
+        foreach (var search in videoSearches)
+        {
+            if (search is VideoSearchResult videoSearchResult)
+            {
+                dataTable.Rows.Add(
+                    videoSearchResult.ToASCII(),
+                    videoSearchResult.Author.ChannelTitle.ToASCII(),
+                    videoSearchResult.Duration.GetValueOrDefault().ToString(@"hh\:mm\:ss")
+                );
+
+                continue;
+            }
+
+            if (search is PlaylistSearchResult playlistSearchResult)
+            {
+                dataTable.Rows.Add(
+                    playlistSearchResult.ToASCII(),
+                    playlistSearchResult?.Author?.ChannelTitle?.ToASCII() ?? "",
+                    ""
+                );
+
+                continue;
+            }
+
+            if (search is ChannelSearchResult channelSearchResult)
+            {
+                dataTable.Rows.Add(channelSearchResult.ToASCII(), "", "");
+                continue;
+            }
+        }
 
         var tableView = new TableView()
         {
