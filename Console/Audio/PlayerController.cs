@@ -70,6 +70,7 @@ public class PlayerController : IAsyncDisposable
 
         _sourceId = AL.GenSource();
         _targetFormat = ALFormat.Stereo16;
+        AL.Source(_sourceId, ALSourcef.Gain, _volume);
     }
 
     public async ValueTask DisposeAsync()
