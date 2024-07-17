@@ -1,7 +1,7 @@
 # Youtube console [WIP]
 Listen to youtube video from the terminal
 
-![imagen](https://github.com/user-attachments/assets/ff1ff95a-7b4a-4cc3-930a-ab50af56856c)
+![imagen](https://github.com/user-attachments/assets/2be7eb04-6baa-43b0-938d-8a6354a2f387)
 
 ## TODO
 - [ ] Implement login with cookies (either via browser or by manually grabbing them)
