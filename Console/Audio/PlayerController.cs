@@ -1,6 +1,3 @@
-using System.Data;
-using Concentus;
-using Concentus.Structs;
 using Console.Containers.Matroska;
 using Console.DownloadHandlers;
 using Console.Extensions;
@@ -9,7 +6,6 @@ using OpenTK.Audio.OpenAL;
 using YoutubeExplode;
 using YoutubeExplode.Search;
 using YoutubeExplode.Videos;
-using static Terminal.Gui.SpinnerStyle;
 
 namespace Console.Audio;
 

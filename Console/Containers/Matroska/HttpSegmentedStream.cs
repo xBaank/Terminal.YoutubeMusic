@@ -49,13 +49,6 @@ internal sealed class HttpSegmentedStream : Stream
         base.Dispose(disposing);
     }
 
-    private static bool IsThrottled(string url) =>
-        !string.Equals(
-            url.TryGetQueryParameterValue("ratebypass"),
-            "yes",
-            StringComparison.OrdinalIgnoreCase
-        );
-
     public static async ValueTask<HttpSegmentedStream> Create(
         IDownloadUrlHandler downloadUrlHandler,
         long initialPos = 0
@@ -63,12 +56,7 @@ internal sealed class HttpSegmentedStream : Stream
     {
         var url = await downloadUrlHandler.GetUrl();
         var httpClient = new HttpClient();
-        return new HttpSegmentedStream(
-            downloadUrlHandler,
-            httpClient,
-            initialPos,
-            !IsThrottled(url) ? await downloadUrlHandler.GetSize() : 9_898_989
-        );
+        return new HttpSegmentedStream(downloadUrlHandler, httpClient, initialPos, 9_898_989);
     }
 
     public override void Flush() => throw new NotImplementedException();
