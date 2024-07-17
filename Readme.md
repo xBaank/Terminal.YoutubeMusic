@@ -3,6 +3,11 @@ Listen to youtube video from the terminal
 
 ![imagen](https://github.com/user-attachments/assets/ff1ff95a-7b4a-4cc3-930a-ab50af56856c)
 
+## TODO
+- [ ] Implement login with cookies (either via browser or by manually grabbing them)
+- [ ] Implement Youtube music suggestions (this does not depend on login)
+- [ ] Repeat song or list of songs
+- [ ] Seek time with only keyboard
 
 ## Requirements
 - .NET 8
