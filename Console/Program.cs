@@ -11,10 +11,10 @@ var top = new Toplevel();
 
 var customColors = new ColorScheme
 {
-    Normal = new Terminal.Gui.Attribute(Color.Gray, Color.Black),
-    HotNormal = new Terminal.Gui.Attribute(Color.Gray, Color.Black),
-    Focus = new Terminal.Gui.Attribute(Color.Red, Color.Black),
-    HotFocus = new Terminal.Gui.Attribute(Color.Red, Color.Black),
+    Normal = new Terminal.Gui.Attribute(Color.Parse("#FFFFFF"), Color.Parse("#1C1C1C")), // White on Dark Gray
+    HotNormal = new Terminal.Gui.Attribute(Color.Parse("#FFD700"), Color.Parse("#1C1C1C")), // Gold on Dark Gray
+    Focus = new Terminal.Gui.Attribute(Color.Parse("#FF4500"), Color.Parse("#1C1C1C")), // OrangeRed on Dark Gray
+    HotFocus = new Terminal.Gui.Attribute(Color.Parse("#FF6347"), Color.Parse("#1C1C1C")) // Tomato on Dark Gray
 };
 
 Colors.ColorSchemes["Menu"] = customColors;
@@ -70,9 +70,9 @@ var statusBar = new StatusBar(
         new Shortcut(Key.P.WithCtrl, "Player", playerWin.SetFocus),
         new Shortcut(
             Key.K.WithCtrl,
-            "Set time",
+            "Seek",
             () => {
-                //TODO Promp or move the user to a TextField to ask for the specific time
+                //TODO Prompt or move the user to a TextField to ask for the specific time
             }
         ),
     ]
