@@ -25,6 +25,7 @@ public class PlayerView(Window win, PlayerController player)
             X = Pos.Center(),
             Y = 1
         };
+
         var nextButton = new Button
         {
             Title = "next",
@@ -38,6 +39,7 @@ public class PlayerView(Window win, PlayerController player)
             X = 0,
             Y = 1
         };
+
         var volumeDownButton = new Button
         {
             Title = "-",

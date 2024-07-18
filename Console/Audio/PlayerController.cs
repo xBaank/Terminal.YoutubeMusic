@@ -3,6 +3,7 @@ using Console.DownloadHandlers;
 using Console.Extensions;
 using Nito.AsyncEx;
 using OpenTK.Audio.OpenAL;
+using Terminal.Gui;
 using YoutubeExplode;
 using YoutubeExplode.Search;
 using YoutubeExplode.Videos;
@@ -60,7 +61,7 @@ public class PlayerController : IAsyncDisposable
         // Check for any errors
         if (ALC.GetError(_device) != AlcError.NoError)
         {
-            System.Console.WriteLine("Error initializing OpenAL context");
+            MessageBox.ErrorQuery("Error", "An error ocurred ", "Ok");
             return;
         }
 
