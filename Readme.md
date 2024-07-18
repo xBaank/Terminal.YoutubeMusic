@@ -18,7 +18,7 @@ Listen to youtube music from the terminal
 ## Features
 - Almost no CPU usage 
 - Small memory usage
-- No dependencies (No MPV, no yt-dlp or youtube-dl)
+- No external dependencies (No MPV, no yt-dlp or youtube-dl)
 
 ## Download
 > [!WARNING]\
@@ -27,3 +27,9 @@ Listen to youtube music from the terminal
 
 ## How to run
 - Run `dotnet Console.dll`
+
+## Dependencies
+- Terminal.gui v2
+- YoutubeExplode
+- Opentk
+- Concentus
