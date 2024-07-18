@@ -23,7 +23,7 @@ Listen to youtube music from the terminal
 ## Download
 > [!WARNING]\
 > Expect bugs, crashes, sound glitches, etc.
-- There is no stable release yet but you can download the latest commit Here
+- There is no stable release yet but you can download the latest [commit](https://nightly.link/xBaank/Terminal.YoutubeMusic/workflows/dotnet/main/YoutubeConsole.zip)
 
 ## How to run
 - Run `dotnet Console.dll`
