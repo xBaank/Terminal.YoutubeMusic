@@ -60,6 +60,7 @@ internal class AudioSender(int sourceId, ALFormat targetFormat)
 
         foreach (var item in fillBuffers)
         {
+            //TODO not a really good idea to generate buffers like this in a class that can dispose
             var buffer = AL.GenBuffer();
             AL.BufferData(buffer, targetFormat, item, SampleRate);
             AL.SourceQueueBuffer(sourceId, buffer);

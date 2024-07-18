@@ -49,6 +49,8 @@ internal class Matroska
         _ebmlReader.Dispose();
         InputStream.Dispose();
         _memoryOwner.Dispose();
+        CurrentTime = default;
+        TotalTime = default;
     }
 
     public async ValueTask DisposeAsync()
@@ -56,6 +58,8 @@ internal class Matroska
         await _ebmlReader.DisposeAsync();
         await InputStream.DisposeAsync();
         _memoryOwner.Dispose();
+        CurrentTime = default;
+        TotalTime = default;
     }
 
     public TimeSpan CurrentTime { get; private set; } = TimeSpan.Zero;

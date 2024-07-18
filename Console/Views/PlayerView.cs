@@ -19,31 +19,48 @@ public class PlayerView(Window win, PlayerController player)
         win.RemoveAll();
         ResetTitle();
 
+        var baseContainer = new View { Height = Dim.Auto(), Width = Dim.Auto(), };
+
+        var backButton = new Button
+        {
+            Title = "<",
+            X = 0,
+            Y = 1
+        };
+
         var playPauseButton = new Button
         {
             Title = "pause",
-            X = Pos.Center(),
-            Y = 1
+            X = Pos.Right(backButton) + 2,
+            Y = 1,
+            Width = Dim.Auto(),
         };
 
         var nextButton = new Button
         {
-            Title = "next",
+            Title = ">",
             X = Pos.Right(playPauseButton) + 2,
             Y = 1
         };
 
-        var volumeUpButton = new Button
+        var loopButton = new Button
         {
-            Title = "+",
-            X = 0,
+            Title = "loop OFF",
+            X = Pos.Right(nextButton) + 2,
             Y = 1
         };
 
         var volumeDownButton = new Button
         {
             Title = "-",
-            X = Pos.Right(volumeUpButton) + 2,
+            X = Pos.Right(loopButton) + 2,
+            Y = 1
+        };
+
+        var volumeUpButton = new Button
+        {
+            Title = "+",
+            X = Pos.Right(volumeDownButton) + 2,
             Y = 1
         };
 
@@ -60,33 +77,54 @@ public class PlayerView(Window win, PlayerController player)
 
         var progressContainer = new View()
         {
-            X = 3,
-            Y = Pos.AnchorEnd(3),
-            Width = Dim.Percent(30),
-            Height = 5,
+            X = 0,
+            Y = 0,
+            Width = Dim.Fill(),
+            Height = 2,
             CanFocus = false
         };
+
         progressContainer.Add(progressBar);
 
         var controlContainer = new View()
         {
             X = Pos.Center(),
-            Y = Pos.Y(progressContainer),
-            Width = Dim.Percent(30),
-            Height = 5,
+            Y = Pos.Bottom(progressContainer),
+            Width = Dim.Auto(),
+            Height = Dim.Auto(),
             CanFocus = false
         };
-        controlContainer.Add(playPauseButton, nextButton);
 
-        var volumeContainer = new View()
+        controlContainer.Add(
+            backButton,
+            playPauseButton,
+            nextButton,
+            loopButton,
+            volumeDownButton,
+            volumeUpButton
+        );
+
+        baseContainer.Add(progressContainer, controlContainer);
+
+        async Task BackSong()
         {
-            X = Pos.AnchorEnd(15),
-            Y = Pos.Y(controlContainer),
-            Width = Dim.Percent(30),
-            Height = 5,
-            CanFocus = false
-        };
-        volumeContainer.Add(volumeUpButton, volumeDownButton);
+            _cancellationTokenSource.Cancel();
+            await player.GoBackAsync();
+            playPauseButton.Text = "pause";
+            progressBar.Fraction = 0;
+            ResetTitle();
+            await player.PlayAsync();
+        }
+
+        async Task NextSong(bool bypassLoop)
+        {
+            _cancellationTokenSource.Cancel();
+            await player.SkipAsync(bypassLoop);
+            playPauseButton.Text = "pause";
+            progressBar.Fraction = 0;
+            ResetTitle();
+            await player.PlayAsync();
+        }
 
         progressBar.MouseClick += async (obj, args) =>
         {
@@ -101,7 +139,7 @@ public class PlayerView(Window win, PlayerController player)
             var timeToSeek = fraction * player.TotalTime;
             if (timeToSeek is null)
                 return;
-            await player.Seek(timeToSeek.Value);
+            await player.SeekAsync(timeToSeek.Value);
         };
 
         volumeUpButton.Accept += (_, args) =>
@@ -125,7 +163,7 @@ public class PlayerView(Window win, PlayerController player)
             {
                 playPauseButton.Text = "play";
 
-                await player.Pause();
+                await player.PauseAsync();
             }
             else
             {
@@ -134,18 +172,14 @@ public class PlayerView(Window win, PlayerController player)
             }
         };
 
-        async Task NextSong()
+        loopButton.Accept += (_, args) =>
         {
-            _cancellationTokenSource.Cancel();
-            await player.SkipAsync();
-            playPauseButton.Text = "pause";
-            progressBar.Fraction = 0;
-            ResetTitle();
-            await player.PlayAsync();
-        }
-
-        nextButton.Accept += async (_, args) => await NextSong();
-        player.OnFinish += async () => await NextSong();
+            player.Loop = !player.Loop;
+            loopButton.Text = player.Loop ? "loop ON" : "loop OFF";
+        };
+        backButton.Accept += async (_, args) => await BackSong();
+        nextButton.Accept += async (_, args) => await NextSong(true);
+        player.OnFinish += async () => await NextSong(false);
 
         player.StateChanged += () =>
         {
@@ -176,8 +210,14 @@ public class PlayerView(Window win, PlayerController player)
                             {
                                 progressBar.ColorScheme = new ColorScheme
                                 {
-                                    Normal = new Terminal.Gui.Attribute(Color.Red, Color.White),
-                                    HotNormal = new Terminal.Gui.Attribute(Color.Red, Color.White)
+                                    Focus = new Terminal.Gui.Attribute(
+                                        Color.Parse("#FF4500"),
+                                        Color.White
+                                    ),
+                                    HotNormal = new Terminal.Gui.Attribute(
+                                        Color.Parse("#FF4500"),
+                                        Color.White
+                                    )
                                 };
                             }
                         });
@@ -188,6 +228,6 @@ public class PlayerView(Window win, PlayerController player)
             );
         };
 
-        win.Add(controlContainer, volumeContainer, progressContainer);
+        win.Add(baseContainer);
     }
 }

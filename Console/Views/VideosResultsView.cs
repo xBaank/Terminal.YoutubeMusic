@@ -97,11 +97,8 @@ public class VideosResultsView(Window win, PlayerController playerController)
 
             await Task.Run(async () =>
             {
-                await playerController.AddAsync(item);
-                if (playerController.State is ALSourceState.Initial or ALSourceState.Stopped)
-                {
-                    await playerController.PlayAsync();
-                }
+                await playerController.SetAsync(item);
+                await playerController.PlayAsync();
             });
         };
     }

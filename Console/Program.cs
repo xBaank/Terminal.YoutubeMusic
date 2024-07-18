@@ -21,8 +21,9 @@ Colors.ColorSchemes["Menu"] = customColors;
 
 var queueWin = new Window
 {
-    Title = "Queue",
+    Title = "Playlist",
     X = 0,
+    BorderStyle = LineStyle.Rounded,
     Y = 1,
     Width = Dim.Percent(20),
     Height = Dim.Fill(),
@@ -33,6 +34,7 @@ var searchWin = new Window
 {
     Title = "Search",
     X = Pos.Right(queueWin),
+    BorderStyle = LineStyle.Rounded,
     Y = 0,
     Width = Dim.Fill(),
     Height = 3,
@@ -43,9 +45,10 @@ var videosWin = new Window
 {
     Title = "Videos",
     X = Pos.Right(queueWin),
+    BorderStyle = LineStyle.Rounded,
     Y = Pos.Bottom(searchWin),
     Width = Dim.Fill(),
-    Height = Dim.Fill() - 6,
+    Height = Dim.Fill() - 8,
     ColorScheme = customColors
 };
 
@@ -53,9 +56,9 @@ var playerWin = new Window
 {
     Title = "Player",
     X = Pos.Right(queueWin),
-    Y = Pos.AnchorEnd(6),
-    Width = Dim.Fill(),
-    Height = 5,
+    BorderStyle = LineStyle.Rounded,
+    Y = Pos.AnchorEnd(8),
+    Height = 7,
     ColorScheme = customColors
 };
 
@@ -68,6 +71,7 @@ var statusBar = new StatusBar(
         new Shortcut(Key.Q.WithCtrl, "Search", searchWin.SetFocus),
         new Shortcut(Key.L.WithCtrl, "Videos", videosWin.SetFocus),
         new Shortcut(Key.P.WithCtrl, "Player", playerWin.SetFocus),
+        new Shortcut(Key.M.WithCtrl, "Playlist", queueWin.SetFocus),
         new Shortcut(
             Key.K.WithCtrl,
             "Seek",
