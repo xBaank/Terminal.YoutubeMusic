@@ -1,4 +1,5 @@
-﻿using Console;
+﻿using System.Globalization;
+using Console;
 using Console.Audio;
 using Console.Views;
 using Terminal.Gui;
@@ -73,10 +74,32 @@ var statusBar = new StatusBar(
         new Shortcut(Key.P.WithCtrl, "Player", playerWin.SetFocus),
         new Shortcut(Key.M.WithCtrl, "Playlist", queueWin.SetFocus),
         new Shortcut(
-            Key.K.WithCtrl,
+            Key.Space.WithCtrl,
             "Seek",
-            () => {
-                //TODO Prompt or move the user to a TextField to ask for the specific time
+            async () =>
+            {
+                var result = Utils.ShowInputDialog(
+                    "Seek time",
+                    "Enter seek time with the format : HH:MM:SS",
+                    customColors
+                );
+
+                if (result is null)
+                {
+                    return;
+                }
+
+                var isParsed = TimeSpan.TryParseExact(
+                    result,
+                    "g",
+                    CultureInfo.InvariantCulture,
+                    out var time
+                );
+
+                if (isParsed)
+                {
+                    await playerController.SeekAsync(time);
+                }
             }
         ),
     ]
