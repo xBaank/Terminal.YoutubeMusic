@@ -7,7 +7,7 @@ Listen to youtube music from the terminal
 - [ ] Implement login with cookies (either via browser or by manually grabbing them)
 - [ ] Implement Youtube music suggestions (this does not depend on login)
 - [ ] Repeat song or list of songs
-- [ ] Seek time with only keyboard
+- [X] Seek time with only keyboard
 - [X] Improve queue so you can go to any video without skiping one by one
 - [ ] Add spinner when song is loading or playlist is loading
 
