@@ -8,7 +8,8 @@ Listen to youtube music from the terminal
 - [ ] Implement Youtube music suggestions (this does not depend on login)
 - [ ] Repeat song or list of songs
 - [ ] Seek time with only keyboard
-- [ ] Improve queue so you can go to any video without skiping one by one
+- [X] Improve queue so you can go to any video without skiping one by one
+- [ ] Add spinner when song is loading or playlist is loading
 
 ## Requirements
 - .NET 8
