@@ -180,41 +180,53 @@ public class PlayerController : IAsyncDisposable
         _currentSongTokenSource = new CancellationTokenSource();
 
         _audioSender = new AudioSender(_sourceId, _targetFormat);
-        _matroskaPlayerBuffer = await Matroska.Create(
-            new YtDownloadUrlHandler(youtubeClient, Song.Id),
-            _audioSender,
-            _currentSongTokenSource.Token
-        );
 
-        _matroskaPlayerBuffer.OnFinish += OnFinish;
+        try
+        {
+            _matroskaPlayerBuffer = await Matroska.Create(
+                new YtDownloadUrlHandler(youtubeClient, Song.Id),
+                _audioSender,
+                _currentSongTokenSource.Token
+            );
+            _matroskaPlayerBuffer.OnFinish += OnFinish;
 
-        _ = Task.Run(() => _matroskaPlayerBuffer.AddFrames(_currentSongTokenSource.Token));
-        _ = Task.Run(() => _audioSender.StartSending(_currentSongTokenSource.Token));
+            _ = Task.Run(() => _matroskaPlayerBuffer.AddFrames(_currentSongTokenSource.Token));
+            _ = Task.Run(() => _audioSender.StartSending(_currentSongTokenSource.Token));
 
-        StateChanged?.Invoke();
+            StateChanged?.Invoke();
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception)
+        {
+            //If there is any error when loading just skip
+            //This could happen if the video is too old and there is no opus support
+            OnFinish?.Invoke();
+        }
     }
 
     public async Task SkipAsync(bool bypassLoop = false)
     {
+        _currentSongTokenSource.Cancel();
+
         using (await _lock.LockAsync())
         {
             if ((bypassLoop || !Loop) && _currentSongIndex <= _queue.Count)
                 _currentSongIndex++;
             AL.SourceStop(_sourceId);
             _audioSender?.ClearBuffer();
-            _currentSongTokenSource.Cancel();
         }
     }
 
     public async Task GoBackAsync()
     {
+        _currentSongTokenSource.Cancel();
+
         using (await _lock.LockAsync())
         {
             if (_currentSongIndex > 0)
                 _currentSongIndex--;
             AL.SourceStop(_sourceId);
             _audioSender?.ClearBuffer();
-            _currentSongTokenSource.Cancel();
         }
     }
 

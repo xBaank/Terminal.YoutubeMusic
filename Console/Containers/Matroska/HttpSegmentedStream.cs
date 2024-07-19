@@ -49,14 +49,15 @@ internal sealed class HttpSegmentedStream : Stream
         base.Dispose(disposing);
     }
 
-    public static async ValueTask<HttpSegmentedStream> Create(
+    public static ValueTask<HttpSegmentedStream> Create(
         IDownloadUrlHandler downloadUrlHandler,
         long initialPos = 0
     )
     {
-        var url = await downloadUrlHandler.GetUrl();
         var httpClient = new HttpClient();
-        return new HttpSegmentedStream(downloadUrlHandler, httpClient, initialPos, 9_898_989);
+        return ValueTask.FromResult(
+            new HttpSegmentedStream(downloadUrlHandler, httpClient, initialPos, 9_898_989)
+        );
     }
 
     public override void Flush() => throw new NotImplementedException();
