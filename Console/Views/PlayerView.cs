@@ -172,11 +172,27 @@ public class PlayerView(Window win, PlayerController player)
             }
         };
 
-        loopButton.Accept += (_, args) =>
+        loopButton.Accept += async (_, args) =>
         {
-            player.Loop = !player.Loop;
-            loopButton.Text = player.Loop ? "loop ON" : "loop OFF";
+            LoopState nextState = player.LoopState switch
+            {
+                LoopState.OFF => LoopState.ON,
+                LoopState.ON => LoopState.ALL,
+                LoopState.ALL => LoopState.OFF,
+                _ => throw new InvalidOperationException("Unknown loop state")
+            };
+
+            await player.SetLoop(nextState);
+
+            loopButton.Text = player.LoopState switch
+            {
+                LoopState.OFF => "loop OFF",
+                LoopState.ON => "loop ON",
+                LoopState.ALL => "loop ALL",
+                _ => throw new InvalidOperationException("Unknown loop state")
+            };
         };
+
         backButton.Accept += async (_, args) => await BackSong();
         nextButton.Accept += async (_, args) => await NextSong(true);
         player.OnFinish += async () => await NextSong(false);

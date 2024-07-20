@@ -56,7 +56,7 @@ internal sealed class HttpSegmentedStream : Stream
     {
         var httpClient = new HttpClient();
         return ValueTask.FromResult(
-            new HttpSegmentedStream(downloadUrlHandler, httpClient, initialPos, 9_898_989)
+            new HttpSegmentedStream(downloadUrlHandler, httpClient, initialPos, 3_000_000)
         );
     }
 

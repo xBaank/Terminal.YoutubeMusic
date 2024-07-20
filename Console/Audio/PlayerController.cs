@@ -51,7 +51,7 @@ public class PlayerController : IAsyncDisposable
     public ALSourceState? State => SourceState();
     public IVideo? Song => _queue.ElementAtOrDefault(_currentSongIndex);
     public IReadOnlyCollection<IVideo> Songs => _queue;
-    public bool Loop { get; set; }
+    public LoopState LoopState { get; private set; }
 
     public PlayerController()
     {
@@ -210,8 +210,15 @@ public class PlayerController : IAsyncDisposable
 
         using (await _lock.LockAsync())
         {
-            if ((bypassLoop || !Loop) && _currentSongIndex <= _queue.Count)
+            if (
+                (bypassLoop || LoopState is LoopState.OFF or LoopState.ALL)
+                && _currentSongIndex <= _queue.Count
+            )
                 _currentSongIndex++;
+
+            if (LoopState == LoopState.ALL && _currentSongIndex >= _queue.Count)
+                _currentSongIndex = 0;
+
             AL.SourceStop(_sourceId);
             _audioSender?.ClearBuffer();
         }
@@ -228,6 +235,12 @@ public class PlayerController : IAsyncDisposable
             AL.SourceStop(_sourceId);
             _audioSender?.ClearBuffer();
         }
+    }
+
+    public async Task SetLoop(LoopState newState)
+    {
+        using var _ = await _lock.LockAsync();
+        LoopState = newState;
     }
 
     public async Task PauseAsync()
