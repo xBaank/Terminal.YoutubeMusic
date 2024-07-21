@@ -2,7 +2,6 @@
 
 using Console.Audio.Containers.Matroska.Elements;
 using Console.Audio.Containers.Matroska.Types;
-using Types;
 
 internal static class MatroskaElementUtilsExtensions
 {

@@ -1,8 +1,5 @@
-﻿using System.Net.Http.Headers;
-using System.Web;
+﻿using System.Web;
 using Console.Audio.DownloadHandlers;
-using Console.Extensions;
-using YoutubeExplode.Videos.Streams;
 
 namespace Console.Audio.Containers.Matroska;
 

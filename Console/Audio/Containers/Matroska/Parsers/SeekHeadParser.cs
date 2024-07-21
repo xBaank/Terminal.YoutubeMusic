@@ -3,7 +3,6 @@ namespace Console.Audio.Containers.Matroska.Parsers;
 using Console.Audio.Containers.Matroska.EBML;
 using Console.Audio.Containers.Matroska.Elements;
 using Console.Audio.Containers.Matroska.Extensions.EbmlExtensions;
-using Console.Containers.Matroska.Extensions.EbmlExtensions;
 using Console.Extensions;
 using Extensions.MatroskaExtensions;
 using static Types.ElementTypes;

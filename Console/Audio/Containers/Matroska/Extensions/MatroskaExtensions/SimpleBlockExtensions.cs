@@ -4,7 +4,6 @@ using Console.Audio.Containers.Matroska.EBML;
 using Console.Audio.Containers.Matroska.Elements;
 using Console.Audio.Containers.Matroska.Extensions;
 using Console.Audio.Containers.Matroska.Types;
-using Types;
 
 //TODO support lacing
 internal static class SimpleBlockExtensions

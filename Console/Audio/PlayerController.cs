@@ -1,5 +1,5 @@
 using Console.Audio.Containers.Matroska;
-using Console.DownloadHandlers;
+using Console.Audio.DownloadHandlers;
 using Nito.AsyncEx;
 using OpenTK.Audio.OpenAL;
 using Terminal.Gui;

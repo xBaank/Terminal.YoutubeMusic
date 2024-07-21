@@ -1,10 +1,6 @@
 ﻿using System.Buffers;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Text;
 using Concentus;
 using Concentus.Structs;
-using Console.Audio;
 using Console.Audio.Containers.Matroska.EBML;
 using Console.Audio.Containers.Matroska.Elements;
 using Console.Audio.Containers.Matroska.Extensions.EbmlExtensions;
@@ -12,9 +8,7 @@ using Console.Audio.Containers.Matroska.Extensions.MatroskaExtensions;
 using Console.Audio.Containers.Matroska.Parsers;
 using Console.Audio.Containers.Matroska.Types;
 using Console.Audio.DownloadHandlers;
-using Console.Containers.Matroska.Extensions.EbmlExtensions;
 using Console.Extensions;
-using Terminal.Gui;
 
 namespace Console.Audio.Containers.Matroska;
 

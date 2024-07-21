@@ -1,7 +1,6 @@
 using System.Data;
 using Console.Audio;
 using Console.Extensions;
-using OpenTK.Audio.OpenAL;
 using Terminal.Gui;
 using YoutubeExplode.Search;
 
