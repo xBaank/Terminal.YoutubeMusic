@@ -5,11 +5,10 @@ Listen to youtube music from the terminal
 
 ## TODO
 - [ ] Implement login with cookies (either via browser or by manually grabbing them)
-- [ ] Implement Youtube music suggestions (this does not depend on login)
-- [ ] Repeat song or list of songs
+- [ ] Implement Youtube music suggestions
+- [X] Repeat song or list of songs
 - [X] Seek time with only keyboard
 - [X] Improve queue so you can go to any video without skiping one by one
-- [ ] Add spinner when song is loading or playlist is loading
 
 ## Requirements
 - .NET 8
