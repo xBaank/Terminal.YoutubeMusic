@@ -101,6 +101,7 @@ public class PlayerTests
         await Task.Delay(5000);
         await player.SetAsync(video2);
         await player.PlayAsync();
+        await finishTask.Task;
 
         player.State.Should().Be(ALSourceState.Stopped);
         player.Song.Should().Be(video2);
