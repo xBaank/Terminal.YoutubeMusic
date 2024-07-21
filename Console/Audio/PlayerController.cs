@@ -1,6 +1,5 @@
-using Console.Containers.Matroska;
-using Console.DownloadHandlers;
-using Console.Extensions;
+using Console.Audio.Containers.Matroska;
+using Console.Audio.DownloadHandlers;
 using Nito.AsyncEx;
 using OpenTK.Audio.OpenAL;
 using Terminal.Gui;
@@ -16,8 +15,8 @@ public class PlayerController : IAsyncDisposable
 
     private float _volume = 0.5f;
 
-    private Queue<IVideo> _queue = new();
-    private IVideo? _currentSong = null;
+    private List<IVideo> _queue = [];
+    private int _currentSongIndex = 0;
 
     private readonly ALDevice _device;
     private readonly ALContext _context;
@@ -31,7 +30,7 @@ public class PlayerController : IAsyncDisposable
     private readonly YoutubeClient youtubeClient = new();
 
     public event Action? StateChanged;
-    public event Action<IEnumerable<IVideo>>? QueueChanged;
+    public event Action<IEnumerable<IVideo>>? QueueChanged; //Maybe emit state to show a loading spinner
     public event Action? OnFinish;
 
     public int Volume
@@ -48,9 +47,11 @@ public class PlayerController : IAsyncDisposable
     }
 
     public TimeSpan? Time => _matroskaPlayerBuffer?.CurrentTime;
-    public TimeSpan? TotalTime => _matroskaPlayerBuffer?.TotalTime ?? _currentSong?.Duration;
+    public TimeSpan? TotalTime => _matroskaPlayerBuffer?.TotalTime ?? Song?.Duration;
     public ALSourceState? State => SourceState();
-    public IVideo? Song => _currentSong;
+    public IVideo? Song => _queue.ElementAtOrDefault(_currentSongIndex);
+    public IReadOnlyCollection<IVideo> Songs => _queue;
+    public LoopState LoopState { get; private set; }
 
     public PlayerController()
     {
@@ -79,7 +80,7 @@ public class PlayerController : IAsyncDisposable
 
         _disposed = true;
 
-        await Stop().ConfigureAwait(false);
+        await StopAsync().ConfigureAwait(false);
         ALC.DestroyContext(_context);
         ALC.CloseDevice(_device);
         AL.DeleteSource(_sourceId);
@@ -89,58 +90,68 @@ public class PlayerController : IAsyncDisposable
             await _matroskaPlayerBuffer.DisposeAsync().ConfigureAwait(false);
         }
 
+        if (_audioSender is not null)
+        {
+            await _audioSender.DisposeAsync().ConfigureAwait(false);
+        }
+
         // Suppress finalization
         GC.SuppressFinalize(this);
     }
 
-    public async ValueTask Seek(TimeSpan time)
+    public async ValueTask SeekAsync(TimeSpan time)
     {
+        using var _ = await _lock.LockAsync();
         _audioSender?.ClearBuffer();
         if (_matroskaPlayerBuffer is not null)
             await _matroskaPlayerBuffer.Seek((long)time.TotalMilliseconds);
     }
 
-    public async Task<List<ISearchResult>> Search(string query) =>
+    public async Task<List<ISearchResult>> SearchAsync(string query) =>
         await youtubeClient.Search.GetResultsAsync(query).Take(50).ToListAsync();
 
-    public async Task AddAsync(ISearchResult item)
+    public async Task SkipToAsync(IVideo video)
+    {
+        using var _ = await _lock.LockAsync();
+        AL.SourceStop(_sourceId);
+        _audioSender?.ClearBuffer();
+        _currentSongTokenSource.Cancel();
+        _currentSongIndex = _queue.IndexOf(video);
+    }
+
+    public async Task SetAsync(ISearchResult item)
     {
         using var _ = await _lock.LockAsync();
 
+        AL.SourceStop(_sourceId);
+        _audioSender?.ClearBuffer();
+        _currentSongTokenSource.Cancel();
+        _currentSongIndex = 0;
+
         if (item is VideoSearchResult videoSearchResult)
         {
-            _queue.Enqueue(videoSearchResult);
+            _queue = [videoSearchResult];
         }
 
         if (item is PlaylistSearchResult playlistSearchResult)
         {
             var videos = await youtubeClient
                 .Playlists.GetVideosAsync(playlistSearchResult.Id)
-                .ToListAsync();
+                .ToListAsync<IVideo>();
 
-            videos.ForEach(video => _queue.Enqueue(video));
+            _queue = videos;
         }
 
         if (item is ChannelSearchResult channelSearchResult)
         {
             var videos = await youtubeClient
                 .Channels.GetUploadsAsync(channelSearchResult.Id)
-                .ToListAsync();
+                .ToListAsync<IVideo>();
 
-            videos.ForEach(video => _queue.Enqueue(video));
+            _queue = videos;
         }
 
         QueueChanged?.Invoke(_queue);
-    }
-
-    private ValueTask<IVideo?> GetNextSong()
-    {
-        var next = _queue.TryGet();
-
-        if (next is not null)
-            QueueChanged?.Invoke(_queue);
-
-        return ValueTask.FromResult(next);
     }
 
     private ALSourceState SourceState()
@@ -153,24 +164,20 @@ public class PlayerController : IAsyncDisposable
     {
         using var _l = await _lock.LockAsync();
 
+        if (Song is null)
+            return;
+
         if (SourceState() == ALSourceState.Playing)
         {
             return;
         }
 
-        if (SourceState() == ALSourceState.Paused && Song is not null)
+        if (SourceState() == ALSourceState.Paused)
         {
             StateChanged?.Invoke();
             AL.SourcePlay(_sourceId);
             return;
         }
-
-        var nextSong = _currentSong ?? await GetNextSong();
-
-        if (nextSong is null)
-            return;
-
-        _currentSong = nextSong;
 
         if (_matroskaPlayerBuffer is not null)
             await _matroskaPlayerBuffer.DisposeAsync();
@@ -178,38 +185,84 @@ public class PlayerController : IAsyncDisposable
         _currentSongTokenSource = new CancellationTokenSource();
 
         _audioSender = new AudioSender(_sourceId, _targetFormat);
-        _matroskaPlayerBuffer = await Matroska.Create(
-            new YtDownloadUrlHandler(youtubeClient, _currentSong.Id),
-            _audioSender,
-            _currentSongTokenSource.Token
-        );
 
-        _matroskaPlayerBuffer.OnFinish += OnFinish;
-
-        _ = Task.Run(() => _matroskaPlayerBuffer.AddFrames(_currentSongTokenSource.Token));
-        _ = Task.Run(() => _audioSender.StartSending(_currentSongTokenSource.Token));
-
-        StateChanged?.Invoke();
-    }
-
-    public async Task SkipAsync()
-    {
-        using (await _lock.LockAsync())
+        try
         {
-            AL.SourceStop(_sourceId);
-            _currentSong = null;
-            _audioSender?.ClearBuffer();
+            _matroskaPlayerBuffer = await Matroska.Create(
+                new YtDownloadUrlHandler(youtubeClient, Song.Id),
+                _audioSender,
+                _currentSongTokenSource.Token
+            );
+            _matroskaPlayerBuffer.OnFinish += async () =>
+            {
+                _currentSongTokenSource.Cancel();
+                await _audioSender.DisposeAsync();
+
+                OnFinish?.Invoke();
+            };
+
+            _ = Task.Run(() => _matroskaPlayerBuffer.AddFrames(_currentSongTokenSource.Token));
+            _ = Task.Run(() => _audioSender.StartSending(_currentSongTokenSource.Token));
+
+            StateChanged?.Invoke();
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception)
+        {
+            //If there is any error when loading just skip
+            //This could happen if the video is too old and there is no opus support
             _currentSongTokenSource.Cancel();
+            await _audioSender.DisposeAsync();
+            OnFinish?.Invoke();
         }
     }
 
-    public async Task Pause()
+    public async Task SkipAsync(bool bypassLoop = false)
+    {
+        _currentSongTokenSource.Cancel();
+
+        using (await _lock.LockAsync())
+        {
+            if (
+                (bypassLoop || LoopState is LoopState.OFF or LoopState.ALL)
+                && _currentSongIndex <= _queue.Count
+            )
+                _currentSongIndex++;
+
+            if (LoopState == LoopState.ALL && _currentSongIndex >= _queue.Count)
+                _currentSongIndex = 0;
+
+            AL.SourceStop(_sourceId);
+            _audioSender?.ClearBuffer();
+        }
+    }
+
+    public async Task GoBackAsync()
+    {
+        _currentSongTokenSource.Cancel();
+
+        using (await _lock.LockAsync())
+        {
+            if (_currentSongIndex > 0)
+                _currentSongIndex--;
+            AL.SourceStop(_sourceId);
+            _audioSender?.ClearBuffer();
+        }
+    }
+
+    public async Task SetLoop(LoopState newState)
+    {
+        using var _ = await _lock.LockAsync();
+        LoopState = newState;
+    }
+
+    public async Task PauseAsync()
     {
         using var _ = await _lock.LockAsync();
         AL.SourcePause(_sourceId);
     }
 
-    public async Task Stop()
+    public async Task StopAsync()
     {
         using var _ = await _lock.LockAsync();
         AL.SourceStop(_sourceId);

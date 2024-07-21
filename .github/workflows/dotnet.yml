@@ -9,15 +9,17 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
+    - name: PulseAudio
+      run: sudo apt-get install pulseaudio && pulseaudio --start
+    - name: Null sink
+      run: pactl load-module module-null-sink sink_name=DummySink
     - name: Restore dependencies
       run: dotnet restore
     - name: Build

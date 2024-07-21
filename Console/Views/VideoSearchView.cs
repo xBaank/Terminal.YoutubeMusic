@@ -30,7 +30,7 @@ public class VideoSearchView(Window win, VideosResultsView videosResults, Player
                     return;
 
                 videosResults.ShowLoading();
-                var results = await player.Search(text);
+                var results = await player.SearchAsync(text);
                 videosResults.HideLoading();
 
                 videosResults.ShowVideos(results);
