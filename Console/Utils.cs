@@ -4,7 +4,7 @@ using Terminal.Gui;
 
 namespace Console;
 
-internal static class Utils
+public static class Utils
 {
     private static bool _isShowing = false;
 
