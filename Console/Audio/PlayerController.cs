@@ -90,6 +90,11 @@ public class PlayerController : IAsyncDisposable
             await _matroskaPlayerBuffer.DisposeAsync().ConfigureAwait(false);
         }
 
+        if (_audioSender is not null)
+        {
+            await _audioSender.DisposeAsync().ConfigureAwait(false);
+        }
+
         // Suppress finalization
         GC.SuppressFinalize(this);
     }
@@ -188,7 +193,13 @@ public class PlayerController : IAsyncDisposable
                 _audioSender,
                 _currentSongTokenSource.Token
             );
-            _matroskaPlayerBuffer.OnFinish += OnFinish;
+            _matroskaPlayerBuffer.OnFinish += async () =>
+            {
+                _currentSongTokenSource.Cancel();
+                await _audioSender.DisposeAsync();
+
+                OnFinish?.Invoke();
+            };
 
             _ = Task.Run(() => _matroskaPlayerBuffer.AddFrames(_currentSongTokenSource.Token));
             _ = Task.Run(() => _audioSender.StartSending(_currentSongTokenSource.Token));
@@ -200,6 +211,8 @@ public class PlayerController : IAsyncDisposable
         {
             //If there is any error when loading just skip
             //This could happen if the video is too old and there is no opus support
+            _currentSongTokenSource.Cancel();
+            await _audioSender.DisposeAsync();
             OnFinish?.Invoke();
         }
     }

@@ -3,11 +3,12 @@ using OpenTK.Audio.OpenAL;
 
 namespace Console.Audio;
 
-internal class AudioSender(int sourceId, ALFormat targetFormat)
+internal class AudioSender(int sourceId, ALFormat targetFormat) : IAsyncDisposable
 {
     private readonly Channel<byte[]> _queue = Channel.CreateBounded<byte[]>(50);
     public readonly int SampleRate = 48000;
     public readonly int Channels = 2;
+    private readonly int[] _buffers = AL.GenBuffers(50);
     private bool _clearBuffer = false;
 
     public void ClearBuffer()
@@ -58,12 +59,11 @@ internal class AudioSender(int sourceId, ALFormat targetFormat)
             .Take(10)
             .ToListAsync(cancellationToken: token);
 
-        foreach (var item in fillBuffers)
+        for (int i = 0; i < fillBuffers.Count; i++)
         {
-            //TODO not a really good idea to generate buffers like this in a class that can dispose
-            var buffer = AL.GenBuffer();
-            AL.BufferData(buffer, targetFormat, item, SampleRate);
-            AL.SourceQueueBuffer(sourceId, buffer);
+            var item = fillBuffers[i];
+            AL.BufferData(_buffers[i], targetFormat, item, SampleRate);
+            AL.SourceQueueBuffer(sourceId, _buffers[i]);
         }
 
         var _ = Task.Run(
@@ -116,5 +116,16 @@ internal class AudioSender(int sourceId, ALFormat targetFormat)
         );
 
         AL.SourcePlay(sourceId);
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        ClearBuffer();
+        AL.SourceStop(sourceId);
+        AL.GetSource(sourceId, ALGetSourcei.BuffersProcessed, out int releasedCount);
+        int[] bufferIds = new int[releasedCount];
+        AL.SourceUnqueueBuffers(sourceId, releasedCount, bufferIds);
+        AL.DeleteBuffers(bufferIds);
+        return ValueTask.CompletedTask;
     }
 }
