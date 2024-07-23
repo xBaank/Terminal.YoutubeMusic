@@ -19,7 +19,10 @@ jobs:
     - name: PulseAudio
       run: sudo apt-get install pulseaudio && pulseaudio --start
     - name: Null sink
-      run: pactl load-module module-null-sink sink_name=DummySink channels=2 && pacmd set-default-sink DummySink
+      run: > 
+        pacmd load-module module-null-sink sink_name=MySink
+        pacmd update-sink-proplist MySink device.description=MySink
+        pacmd load-module module-loopback sink=MySink
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
