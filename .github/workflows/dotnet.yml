@@ -29,6 +29,12 @@ jobs:
     - name: Set default sink to VirtualSink
       run: |
         pactl set-default-sink VirtualSink
+    - name: Verify PulseAudio Setup
+      run: |
+        pactl list short sinks
+        pactl info
+    - name: Wait for PulseAudio Initialization
+      run: sleep 5
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
