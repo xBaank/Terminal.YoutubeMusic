@@ -16,33 +16,8 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
-    - name: Set up PulseAudio
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y pulseaudio
-    - name: Disable PulseAudio Autosuspend
-      run: |
-        rm -rf $HOME/.config/pulse
-        # Create a configuration directory if it doesn't exist
-        mkdir -p ~/.config/pulse
-
-        # Disable autosuspend in PulseAudio configuration
-        echo "autospawn = yes" > ~/.config/pulse/client.conf
-        echo "autosuspend = no" >> ~/.config/pulse/default.pa
-
-        # Reload PulseAudio configuration
-        pulseaudio --start
-        sleep 15
-    - name: Create default PulseAudio virtual sink
-      run: |
-        pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=Virtual_Sink
-    - name: Set default sink to VirtualSink
-      run: |
-        pactl set-default-sink VirtualSink
-    - name: Verify PulseAudio Setup
-      run: |
-        pactl list short sinks
-        pactl info
+    - name: Set up virtual device
+      run: jackd -d dummy &
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
