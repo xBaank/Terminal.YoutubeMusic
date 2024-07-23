@@ -35,7 +35,7 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: | 
-          DeviceName=$(pacmd list-sinks | awk '/name:/ {print $2; exit}')
+          export DeviceName=$(pacmd list-sinks | awk '/name:/ {print $2; exit}')
           echo "$DeviceName"
           dotnet test --no-build --verbosity normal
     - name: Publish
