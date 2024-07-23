@@ -31,7 +31,6 @@ jobs:
         echo "autosuspend = no" >> ~/.config/pulse/default.pa
 
         # Reload PulseAudio configuration
-        pulseaudio -k || true
         pulseaudio --start
         sleep 15
     - name: Create default PulseAudio virtual sink
