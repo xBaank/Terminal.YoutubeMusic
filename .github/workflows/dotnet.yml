@@ -16,6 +16,10 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
+    - name: Install jackd
+      run: | 
+          sudo apt update
+          sudo apt install -y jackd2
     - name: Set up virtual device
       run: jackd -d dummy &
     - name: Restore dependencies
