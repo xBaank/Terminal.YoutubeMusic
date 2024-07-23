@@ -182,7 +182,7 @@ public class PlayerView(Window win, PlayerController player)
                 _ => throw new InvalidOperationException("Unknown loop state")
             };
 
-            await player.SetLoop(nextState);
+            player.LoopState = nextState;
 
             loopButton.Text = player.LoopState switch
             {

@@ -51,7 +51,7 @@ public class PlayerController : IAsyncDisposable
     public ALSourceState? State => SourceState();
     public IVideo? Song => _queue.ElementAtOrDefault(_currentSongIndex);
     public IReadOnlyCollection<IVideo> Songs => _queue;
-    public LoopState LoopState { get; private set; }
+    public LoopState LoopState { get; set; }
 
     public PlayerController()
     {
@@ -179,6 +179,9 @@ public class PlayerController : IAsyncDisposable
             return;
         }
 
+        if (_audioSender is not null)
+            await _audioSender.DisposeAsync();
+
         if (_matroskaPlayerBuffer is not null)
             await _matroskaPlayerBuffer.DisposeAsync();
 
@@ -193,11 +196,11 @@ public class PlayerController : IAsyncDisposable
                 _audioSender,
                 _currentSongTokenSource.Token
             );
+
             _matroskaPlayerBuffer.OnFinish += async () =>
             {
                 _currentSongTokenSource.Cancel();
                 await _audioSender.DisposeAsync();
-
                 OnFinish?.Invoke();
             };
 
@@ -248,12 +251,6 @@ public class PlayerController : IAsyncDisposable
             AL.SourceStop(_sourceId);
             _audioSender?.ClearBuffer();
         }
-    }
-
-    public async Task SetLoop(LoopState newState)
-    {
-        using var _ = await _lock.LockAsync();
-        LoopState = newState;
     }
 
     public async Task PauseAsync()
