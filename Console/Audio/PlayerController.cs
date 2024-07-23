@@ -51,19 +51,19 @@ public class PlayerController : IAsyncDisposable
     public ALSourceState? State => SourceState();
     public IVideo? Song => _queue.ElementAtOrDefault(_currentSongIndex);
     public IReadOnlyCollection<IVideo> Songs => _queue;
-    public LoopState LoopState { get; private set; }
+    public LoopState LoopState { get; set; }
 
     public PlayerController()
     {
-        _device = ALC.OpenDevice("");
+        _device = ALC.OpenDevice(null);
         _context = ALC.CreateContext(_device, new ALContextAttributes());
         ALC.MakeContextCurrent(_context);
 
+        var error = ALC.GetError(_device);
         // Check for any errors
-        if (ALC.GetError(_device) != AlcError.NoError)
+        if (error != AlcError.NoError)
         {
-            MessageBox.ErrorQuery("Error", "An error ocurred ", "Ok");
-            return;
+            throw new Exception($"Error code: {error}");
         }
 
         _sourceId = AL.GenSource();
@@ -128,6 +128,11 @@ public class PlayerController : IAsyncDisposable
         _currentSongTokenSource.Cancel();
         _currentSongIndex = 0;
 
+        AL.SourceStop(_sourceId);
+        _audioSender?.ClearBuffer();
+        _currentSongTokenSource.Cancel();
+        _currentSongIndex = 0;
+
         if (item is VideoSearchResult videoSearchResult)
         {
             _queue = [videoSearchResult];
@@ -179,6 +184,9 @@ public class PlayerController : IAsyncDisposable
             return;
         }
 
+        if (_audioSender is not null)
+            await _audioSender.DisposeAsync();
+
         if (_matroskaPlayerBuffer is not null)
             await _matroskaPlayerBuffer.DisposeAsync();
 
@@ -193,11 +201,11 @@ public class PlayerController : IAsyncDisposable
                 _audioSender,
                 _currentSongTokenSource.Token
             );
+
             _matroskaPlayerBuffer.OnFinish += async () =>
             {
                 _currentSongTokenSource.Cancel();
                 await _audioSender.DisposeAsync();
-
                 OnFinish?.Invoke();
             };
 
@@ -232,8 +240,8 @@ public class PlayerController : IAsyncDisposable
             if (LoopState == LoopState.ALL && _currentSongIndex >= _queue.Count)
                 _currentSongIndex = 0;
 
-            AL.SourceStop(_sourceId);
             _audioSender?.ClearBuffer();
+            AL.SourceStop(_sourceId);
         }
     }
 
@@ -248,12 +256,6 @@ public class PlayerController : IAsyncDisposable
             AL.SourceStop(_sourceId);
             _audioSender?.ClearBuffer();
         }
-    }
-
-    public async Task SetLoop(LoopState newState)
-    {
-        using var _ = await _lock.LockAsync();
-        LoopState = newState;
     }
 
     public async Task PauseAsync()

@@ -1,4 +1,4 @@
-﻿using Console.Audio;
+using Console.Audio;
 using Console.Extensions;
 using OpenTK.Audio.OpenAL;
 using Terminal.Gui;
@@ -172,7 +172,7 @@ public class PlayerView(Window win, PlayerController player)
             }
         };
 
-        loopButton.Accept += async (_, args) =>
+        loopButton.Accept += (_, args) =>
         {
             LoopState nextState = player.LoopState switch
             {
@@ -182,7 +182,7 @@ public class PlayerView(Window win, PlayerController player)
                 _ => throw new InvalidOperationException("Unknown loop state")
             };
 
-            await player.SetLoop(nextState);
+            player.LoopState = nextState;
 
             loopButton.Text = player.LoopState switch
             {

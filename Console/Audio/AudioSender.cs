@@ -5,7 +5,7 @@ namespace Console.Audio;
 
 internal class AudioSender(int sourceId, ALFormat targetFormat) : IAsyncDisposable
 {
-    private readonly Channel<byte[]> _queue = Channel.CreateBounded<byte[]>(50);
+    private readonly Channel<PcmPacket> _queue = Channel.CreateBounded<PcmPacket>(50);
     public readonly int SampleRate = 48000;
     public readonly int Channels = 2;
     private readonly int[] _buffers = AL.GenBuffers(50);
@@ -14,10 +14,13 @@ internal class AudioSender(int sourceId, ALFormat targetFormat) : IAsyncDisposab
     public void ClearBuffer()
     {
         _clearBuffer = true;
-        while (_queue.Reader.TryRead(out var _)) { }
+        while (_queue.Reader.TryRead(out var next))
+        {
+            next.Dispose();
+        }
     }
 
-    public async ValueTask Add(byte[] data) => await _queue.Writer.WriteAsync(data);
+    public async ValueTask Add(PcmPacket data) => await _queue.Writer.WriteAsync(data);
 
     private async ValueTask ClearBufferAL(CancellationToken token)
     {
@@ -32,8 +35,8 @@ internal class AudioSender(int sourceId, ALFormat targetFormat) : IAsyncDisposab
             AL.SourceUnqueueBuffers(sourceId, queuedCount, bufferIds);
             foreach (var buffer in bufferIds)
             {
-                var next = await _queue.Reader.ReadAsync(token);
-                AL.BufferData(buffer, targetFormat, next, SampleRate);
+                using var next = await _queue.Reader.ReadAsync(token);
+                AL.BufferData(buffer, targetFormat, next.Data, SampleRate);
                 AL.SourceQueueBuffer(sourceId, buffer);
             }
         }
@@ -61,8 +64,8 @@ internal class AudioSender(int sourceId, ALFormat targetFormat) : IAsyncDisposab
 
         for (int i = 0; i < fillBuffers.Count; i++)
         {
-            var item = fillBuffers[i];
-            AL.BufferData(_buffers[i], targetFormat, item, SampleRate);
+            using var item = fillBuffers[i];
+            AL.BufferData(_buffers[i], targetFormat, item.Data, SampleRate);
             AL.SourceQueueBuffer(sourceId, _buffers[i]);
         }
 
@@ -91,8 +94,8 @@ internal class AudioSender(int sourceId, ALFormat targetFormat) : IAsyncDisposab
                             AL.SourceUnqueueBuffers(sourceId, releasedCount, bufferIds);
                             foreach (var buffer in bufferIds)
                             {
-                                var next = await _queue.Reader.ReadAsync(token);
-                                AL.BufferData(buffer, targetFormat, next, SampleRate);
+                                using var next = await _queue.Reader.ReadAsync(token);
+                                AL.BufferData(buffer, targetFormat, next.Data, SampleRate);
                                 AL.SourceQueueBuffer(sourceId, buffer);
                             }
                         }

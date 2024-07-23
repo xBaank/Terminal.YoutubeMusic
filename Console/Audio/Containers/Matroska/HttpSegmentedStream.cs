@@ -9,6 +9,7 @@ internal sealed class HttpSegmentedStream : Stream
     private readonly HttpClient _httpClient;
     private Stream? _httpStream;
     private bool _positionChanged;
+    private long _chunkPosition;
 
     private HttpSegmentedStream(
         IDownloadUrlHandler downloadUrlHandler,
@@ -67,9 +68,19 @@ internal sealed class HttpSegmentedStream : Stream
         CancellationToken cancellationToken = default
     )
     {
-        if (_httpStream is null || _positionChanged)
+        if (
+            _httpStream is null
+            || _positionChanged
+                && Position < _chunkPosition
+                && Position > (_chunkPosition + _httpStream?.Length)
+        )
         {
             await ReadNextChunk(cancellationToken);
+            _positionChanged = false;
+        }
+        else if (_positionChanged)
+        {
+            _httpStream?.Seek(Math.Abs(Position - _chunkPosition), SeekOrigin.Begin);
             _positionChanged = false;
         }
 
@@ -153,13 +164,17 @@ internal sealed class HttpSegmentedStream : Stream
         if (_httpStream is not null)
             await _httpStream.DisposeAsync();
 
-        _httpStream = await _httpClient.GetStreamAsync(
+        var response = await _httpClient.GetAsync(
             AppendRangeToUrl(
                 await _downloadUrlHandler.GetUrl(),
                 Position,
                 Position + BufferSize - 1
             ),
+            HttpCompletionOption.ResponseContentRead,
             cancellationToken
         );
+
+        _httpStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        _chunkPosition = Position;
     }
 }

@@ -9,18 +9,18 @@ using Console.Audio.Containers.Matroska.Parsers;
 using Console.Audio.Containers.Matroska.Types;
 using Console.Audio.DownloadHandlers;
 using Console.Extensions;
+using Nito.Disposables;
 
 namespace Console.Audio.Containers.Matroska;
 
 using static ElementTypes;
 
-internal class Matroska
+internal class Matroska : IDisposable, IAsyncDisposable
 {
     private readonly EbmlReader _ebmlReader;
     private readonly AudioSender _sender;
-    public readonly Stream InputStream;
+    private readonly Stream _inputStream;
     private readonly IOpusDecoder _decoder;
-
     private List<AudioTrack>? _audioTracks;
     private List<CuePoint>? _cuePoints;
     private IMemoryOwner<byte> _memoryOwner = MemoryPool<byte>.Shared.Rent(1024);
@@ -32,7 +32,7 @@ internal class Matroska
 
     private Matroska(Stream stream, AudioSender sender)
     {
-        InputStream = stream;
+        _inputStream = stream;
         _ebmlReader = new EbmlReader(stream);
         _sender = sender;
         _decoder = OpusCodecFactory.CreateDecoder(_sender.SampleRate, _sender.Channels);
@@ -42,7 +42,7 @@ internal class Matroska
     public void Dispose()
     {
         _ebmlReader.Dispose();
-        InputStream.Dispose();
+        _inputStream.Dispose();
         _memoryOwner.Dispose();
         CurrentTime = default;
         TotalTime = default;
@@ -51,7 +51,7 @@ internal class Matroska
     public async ValueTask DisposeAsync()
     {
         await _ebmlReader.DisposeAsync();
-        await InputStream.DisposeAsync();
+        await _inputStream.DisposeAsync();
         _memoryOwner.Dispose();
         CurrentTime = default;
         TotalTime = default;
@@ -141,27 +141,40 @@ internal class Matroska
         }
     }
 
-    private static byte[] ShortsToBytes(short[] input, int offset, int length)
+    private static void ShortsToBytes(ReadOnlySpan<short> input, Span<byte> output)
     {
-        byte[] processedValues = new byte[length * 2];
-        for (int i = 0; i < length; i++)
+        for (int i = 0; i < input.Length; i++)
         {
-            processedValues[i * 2] = (byte)input[i + offset];
-            processedValues[i * 2 + 1] = (byte)(input[i + offset] >> 8);
+            output[i * 2] = (byte)input[i];
+            output[i * 2 + 1] = (byte)(input[i] >> 8);
         }
-
-        return processedValues;
     }
 
-    private async ValueTask AddOpusPacket(byte[] data)
+    private async ValueTask AddOpusPacket(ReadOnlyMemory<byte> data)
     {
-        var frames = OpusPacketInfo.GetNumFrames(data);
-        var samplePerFrame = OpusPacketInfo.GetNumSamplesPerFrame(data, _sender.SampleRate);
+        var frames = OpusPacketInfo.GetNumFrames(data.Span);
+        var samplePerFrame = OpusPacketInfo.GetNumSamplesPerFrame(data.Span, _sender.SampleRate);
         var frameSize = frames * samplePerFrame;
-        short[] pcm = new short[frameSize * _sender.Channels];
-        _decoder.Decode(data, pcm, frameSize);
-        var result = ShortsToBytes(pcm, 0, pcm.Length);
-        await _sender.Add(result);
+        var pcmSize = frameSize * _sender.Channels;
+
+        var pcm = ArrayPool<short>.Shared.Rent(pcmSize);
+        var pcmBytes = ArrayPool<byte>.Shared.Rent(pcmSize * 2);
+
+        try
+        {
+            _decoder.Decode(data.Span, pcm.AsSpan()[..pcmSize], frameSize);
+            ShortsToBytes(pcm.AsSpan()[..pcmSize], pcmBytes.AsSpan()[..(pcmSize * 2)]);
+            await _sender.Add(new PcmPacket(pcmBytes, pcmSize * 2));
+        }
+        catch
+        {
+            ArrayPool<byte>.Shared.Return(pcmBytes);
+            throw;
+        }
+        finally
+        {
+            ArrayPool<short>.Shared.Return(pcm);
+        }
     }
 
     private async ValueTask WriteBlock(
@@ -189,7 +202,7 @@ internal class Matroska
                 return;
 
             foreach (var frame in block.GetFrames())
-                await AddOpusPacket(frame.ToArray());
+                await AddOpusPacket(frame);
 
             return;
         }
