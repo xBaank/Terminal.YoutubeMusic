@@ -23,10 +23,6 @@ jobs:
     - name: Start PulseAudio
       run: |
         pulseaudio --start
-        sleep 1m
-        sudo sed -i '/^load-module module-suspend-on-idle/s/^/#/' /etc/pulse/default.pa
-        pulseaudio -k
-        pulseaudio --start
         timeout 60 bash -c 'while ! pactl info >/dev/null 2>&1; do sleep 1; done'
     - name: Create default PulseAudio virtual sink
       run: |
