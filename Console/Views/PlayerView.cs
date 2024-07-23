@@ -172,7 +172,7 @@ public class PlayerView(Window win, PlayerController player)
             }
         };
 
-        loopButton.Accept += async (_, args) =>
+        loopButton.Accept += (_, args) =>
         {
             LoopState nextState = player.LoopState switch
             {
