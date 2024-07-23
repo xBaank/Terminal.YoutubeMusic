@@ -25,7 +25,7 @@ jobs:
         pulseaudio -k || true
         rm -rf $HOME/.config/pulse
         pulseaudio --start
-        sleep 15
+        sleep 30
     - name: Create default PulseAudio virtual sink
       run: |
         pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=Virtual_Sink
