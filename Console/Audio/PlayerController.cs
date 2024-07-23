@@ -59,11 +59,11 @@ public class PlayerController : IAsyncDisposable
         _context = ALC.CreateContext(_device, new ALContextAttributes());
         ALC.MakeContextCurrent(_context);
 
+        var error = ALC.GetError(_device);
         // Check for any errors
-        if (ALC.GetError(_device) != AlcError.NoError)
+        if (error != AlcError.NoError)
         {
-            MessageBox.ErrorQuery("Error", "An error ocurred ", "Ok");
-            return;
+            throw new Exception($"Error code: {error}");
         }
 
         _sourceId = AL.GenSource();
