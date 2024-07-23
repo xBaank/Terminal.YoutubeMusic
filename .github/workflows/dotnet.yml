@@ -8,15 +8,31 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env: 
+       DeviceName: VirtualSink
     steps:
     - uses: actions/checkout@v4
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
-    - name: Set default sink to VirtualSink
+    - name: Set up PulseAudio
       run: |
-        sudo modprobe snd-aloop
+        sudo apt-get update
+        sudo apt-get install -y pulseaudio
+    - name: Start PulseAudio
+      run: |
+        pulseaudio -k || true
+        rm -rf $HOME/.config/pulse
+        pulseaudio --start
+        sleep 15
+    - name: Create default PulseAudio virtual sink
+      run: |
+        pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=Virtual_Sink
+    - name: Verify PulseAudio Setup
+      run: |
+        pactl list short sinks
+        pactl info
     - name: Restore dependencies
       run: dotnet restore
     - name: Build

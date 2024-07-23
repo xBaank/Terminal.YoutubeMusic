@@ -7,7 +7,11 @@ namespace Tests;
 
 public class PlayerTests
 {
-    public PlayerTests() => Utils.ConfigurePlatformDependencies();
+    public PlayerTests()
+    {
+        Utils.ConfigurePlatformDependencies();
+        Utils.DeviceName = Environment.GetEnvironmentVariable("DeviceName");
+    }
 
     [Fact]
     public async Task I_can_play_a_song()
