@@ -128,6 +128,11 @@ public class PlayerController : IAsyncDisposable
         _currentSongTokenSource.Cancel();
         _currentSongIndex = 0;
 
+        AL.SourceStop(_sourceId);
+        _audioSender?.ClearBuffer();
+        _currentSongTokenSource.Cancel();
+        _currentSongIndex = 0;
+
         if (item is VideoSearchResult videoSearchResult)
         {
             _queue = [videoSearchResult];
