@@ -22,15 +22,15 @@ jobs:
         sudo apt-get install -y pulseaudio
     - name: Start PulseAudio
       run: |
-        pulseaudio --start
-        sleep 5
-    - name: Start Delete old config
-      run: |
         pulseaudio -k
-        sleep 5
+        pulseaudio --start
+        sleep 15
     - name: Create default PulseAudio virtual sink
       run: |
         pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=Virtual_Sink
+    - name: Create defaulkt loopback
+      run: |
+        pactl load-module module-loopback  source='Virtual_Sink.monitor' sink='alsa_output.pci-0000_00_1b.0.analog-stereo' 
     - name: Set default sink to VirtualSink
       run: |
         pactl set-default-sink VirtualSink
