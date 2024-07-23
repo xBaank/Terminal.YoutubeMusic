@@ -16,7 +16,7 @@ jobs:
         dotnet-version: 8.0.x
     - name: Set default sink to VirtualSink
       run: |
-        echo 'default_device = "null"' >> ~/.alsoftrc
+        sudo modprobe snd-aloop
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
