@@ -19,9 +19,9 @@ jobs:
     - name: Install jackd
       run: | 
           sudo apt update
-          sudo apt install -y jackd2
+          sudo apt install -y jackd
     - name: Set up virtual device
-      run: jackd -d dummy &
+      run: sudo jackd -d dummy &
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
