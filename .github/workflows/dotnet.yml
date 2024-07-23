@@ -28,7 +28,7 @@ jobs:
         sleep 30
     - name: Create default PulseAudio virtual sink
       run: |
-        pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=Virtual_Sink
+        pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=VirtualSink
     - name: Verify PulseAudio Setup
       run: |
         pactl list short sinks
