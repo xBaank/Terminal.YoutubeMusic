@@ -16,13 +16,19 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
-    - name: PulseAudio
-      run: sudo apt-get install pulseaudio && pulseaudio --start
-    - name: Null sink
-      run: > 
-        pacmd load-module module-null-sink sink_name=MySink
-        pacmd update-sink-proplist MySink device.description=MySink
-        pacmd load-module module-loopback sink=MySink
+    - name: Set up PulseAudio
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y pulseaudio
+    - name: Start PulseAudio
+      run: |
+        pulseaudio --start
+    - name: Create default PulseAudio virtual sink
+      run: |
+        pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=Virtual_Sink
+    - name: Set default sink to VirtualSink
+      run: |
+        pactl set-default-sink VirtualSink
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
