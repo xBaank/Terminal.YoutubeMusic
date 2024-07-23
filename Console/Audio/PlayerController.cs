@@ -235,8 +235,8 @@ public class PlayerController : IAsyncDisposable
             if (LoopState == LoopState.ALL && _currentSongIndex >= _queue.Count)
                 _currentSongIndex = 0;
 
-            AL.SourceStop(_sourceId);
             _audioSender?.ClearBuffer();
+            AL.SourceStop(_sourceId);
         }
     }
 
