@@ -22,7 +22,8 @@ jobs:
         sudo apt-get install -y pulseaudio
     - name: Start PulseAudio
       run: |
-        pulseaudio -k
+        pulseaudio -k || true
+        rm -rf $HOME/.config/pulse
         pulseaudio --start
         sleep 15
     - name: Create default PulseAudio virtual sink
