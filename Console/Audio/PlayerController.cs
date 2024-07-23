@@ -55,7 +55,7 @@ public class PlayerController : IAsyncDisposable
 
     public PlayerController()
     {
-        _device = ALC.OpenDevice(Utils.DeviceName);
+        _device = ALC.OpenDevice(null);
         _context = ALC.CreateContext(_device, new ALContextAttributes());
         ALC.MakeContextCurrent(_context);
 

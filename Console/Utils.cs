@@ -7,7 +7,6 @@ namespace Console;
 public static class Utils
 {
     private static bool _isShowing = false;
-    public static string? DeviceName { get; set; }
 
     public static void ConfigurePlatformDependencies()
     {

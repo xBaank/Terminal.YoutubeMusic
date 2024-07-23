@@ -4,12 +4,12 @@ on:
   push:
     branches: ["*"]
     tags: ["*"]
+  pull_request:
+    branches: ["*"]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env: 
-       DeviceName: VirtualSink
     steps:
     - uses: actions/checkout@v4
     - name: Setup .NET
@@ -20,15 +20,26 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y pulseaudio
-    - name: Start PulseAudio
+    - name: Disable PulseAudio Autosuspend
       run: |
-        pulseaudio -k || true
         rm -rf $HOME/.config/pulse
+        # Create a configuration directory if it doesn't exist
+        mkdir -p ~/.config/pulse
+
+        # Disable autosuspend in PulseAudio configuration
+        echo "autospawn = yes" > ~/.config/pulse/client.conf
+        echo "autosuspend = no" >> ~/.config/pulse/default.pa
+
+        # Reload PulseAudio configuration
+        pulseaudio -k || true
         pulseaudio --start
-        sleep 30
+        sleep 15
     - name: Create default PulseAudio virtual sink
       run: |
-        pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=VirtualSink
+        pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=Virtual_Sink
+    - name: Set default sink to VirtualSink
+      run: |
+        pactl set-default-sink VirtualSink
     - name: Verify PulseAudio Setup
       run: |
         pactl list short sinks
