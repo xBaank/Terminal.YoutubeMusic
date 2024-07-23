@@ -20,23 +20,16 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y pulseaudio
-    - name: Start PulseAudio
-      run: |
-        pulseaudio --start
-        timeout 60 bash -c 'while ! pactl info >/dev/null 2>&1; do sleep 1; done'
-    - name: Create default PulseAudio virtual sink
-      run: |
-        pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=Virtual_Sink
-    - name: Set default sink to VirtualSink
-      run: |
-        pactl set-default-sink VirtualSink
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
       run: dotnet build --no-restore
     - name: Test
-      run: | 
-          dotnet test --no-build --verbosity normal
+      run: |
+        pulseaudio --start
+        pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=Virtual_Sink
+        pactl set-default-sink VirtualSink
+        dotnet test --no-build --verbosity normal
     - name: Publish
       run: cd Console && dotnet publish -c Release -o ./output
     - name: Upload Artifact
@@ -44,4 +37,3 @@ jobs:
       with:
         name: YoutubeConsole
         path: ./Console/output
-      
