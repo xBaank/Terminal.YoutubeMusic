@@ -23,6 +23,10 @@ jobs:
     - name: Start PulseAudio
       run: |
         pulseaudio --start
+        sleep 10
+        sudo sed -i '/^load-module module-suspend-on-idle/s/^/#/' /etc/pulse/default.pa
+        pulseaudio -k
+        pulseaudio --start
     - name: Create default PulseAudio virtual sink
       run: |
         pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=Virtual_Sink
