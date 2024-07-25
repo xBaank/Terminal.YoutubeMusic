@@ -1,4 +1,6 @@
 ﻿using System.Globalization;
+using System.Reflection.Metadata.Ecma335;
+using AngleSharp.Common;
 using Console;
 using Console.Audio;
 using Console.Views;
@@ -61,50 +63,6 @@ var playerWin = new Window
     ColorScheme = customColors
 };
 
-await using var playerController = new PlayerController();
-
-//TODO Add player shocuts here
-var statusBar = new StatusBar(
-    [
-        new Shortcut(Key.Esc, "Exit", () => { }),
-        new Shortcut(Key.Q.WithCtrl, "Search", searchWin.SetFocus),
-        new Shortcut(Key.L.WithCtrl, "Videos", videosWin.SetFocus),
-        new Shortcut(Key.P.WithCtrl, "Player", playerWin.SetFocus),
-        new Shortcut(Key.M.WithCtrl, "Playlist", queueWin.SetFocus),
-        new Shortcut(
-            Key.Space.WithCtrl,
-            "Seek",
-            async () =>
-            {
-                var result = Utils.ShowInputDialog(
-                    "Seek time",
-                    "Enter seek time with the format : HH:MM:SS",
-                    customColors
-                );
-
-                if (result is null)
-                {
-                    return;
-                }
-
-                var isParsed = TimeSpan.TryParseExact(
-                    result,
-                    "g",
-                    CultureInfo.InvariantCulture,
-                    out var time
-                );
-
-                if (isParsed)
-                {
-                    await playerController.SeekAsync(time);
-                }
-            }
-        ),
-    ]
-);
-
-top.Add(queueWin, searchWin, videosWin, playerWin, statusBar);
-
 var tabView = new TabView
 {
     X = 0,
@@ -142,6 +100,67 @@ tabView.AddTab(resultsTab, true);
 tabView.AddTab(suggestionsTab, false);
 
 videosWin.Add(tabView);
+
+await using var playerController = new PlayerController();
+
+//TODO Add player shocuts here
+var statusBar = new StatusBar(
+    [
+        new Shortcut(Key.Esc, "Exit", () => { }),
+        new Shortcut(Key.Q.WithCtrl, "Search", searchWin.SetFocus),
+        new Shortcut(
+            Key.L.WithCtrl,
+            "Rotate tabs",
+            () =>
+            {
+                var current = tabView.Tabs.ToList().IndexOf(tabView.SelectedTab);
+                if (current >= tabView.Tabs.Count - 1)
+                {
+                    tabView.SelectedTab = tabView.Tabs.ElementAt(0);
+                }
+                else
+                {
+                    tabView.SelectedTab = tabView.Tabs.ElementAt(tabView.TabIndex + 1);
+                }
+                tabView.SetFocus();
+                tabView.EnsureSelectedTabIsVisible();
+            }
+        ),
+        new Shortcut(Key.P.WithCtrl, "Player", playerWin.SetFocus),
+        new Shortcut(Key.M.WithCtrl, "Playlist", queueWin.SetFocus),
+        new Shortcut(
+            Key.Space.WithCtrl,
+            "Seek",
+            async () =>
+            {
+                var result = Utils.ShowInputDialog(
+                    "Seek time",
+                    "Enter seek time with the format : HH:MM:SS",
+                    customColors
+                );
+
+                if (result is null)
+                {
+                    return;
+                }
+
+                var isParsed = TimeSpan.TryParseExact(
+                    result,
+                    "g",
+                    CultureInfo.InvariantCulture,
+                    out var time
+                );
+
+                if (isParsed)
+                {
+                    await playerController.SeekAsync(time);
+                }
+            }
+        ),
+    ]
+);
+
+top.Add(queueWin, searchWin, videosWin, playerWin, statusBar);
 
 var player = new PlayerView(playerWin, playerController);
 var videosResults = new VideosResultsView(resultsTab.View, playerController);
