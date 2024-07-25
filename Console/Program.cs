@@ -42,11 +42,9 @@ var searchWin = new Window
     ColorScheme = customColors
 };
 
-var videosWin = new Window
+var videosWin = new View
 {
-    Title = "Videos",
     X = Pos.Right(queueWin),
-    BorderStyle = LineStyle.Rounded,
     Y = Pos.Bottom(searchWin),
     Width = Dim.Fill(),
     Height = Dim.Fill() - 8,
@@ -107,8 +105,46 @@ var statusBar = new StatusBar(
 
 top.Add(queueWin, searchWin, videosWin, playerWin, statusBar);
 
+var tabView = new TabView
+{
+    X = 0,
+    Y = 0,
+    Width = Dim.Fill(),
+    Height = Dim.Fill()
+};
+
+var resultsTab = new Tab
+{
+    DisplayText = "Results",
+    X = 0,
+    Y = 0,
+    Width = Dim.Fill(),
+    Height = Dim.Fill()
+};
+var suggestionsTab = new Tab
+{
+    DisplayText = "Suggestions",
+    X = 0,
+    Y = 0,
+    Width = Dim.Fill(),
+    Height = Dim.Fill()
+};
+
+resultsTab.View = new View
+{
+    X = 0,
+    Y = 0,
+    Width = Dim.Fill(),
+    Height = Dim.Fill()
+};
+
+tabView.AddTab(resultsTab, true);
+tabView.AddTab(suggestionsTab, false);
+
+videosWin.Add(tabView);
+
 var player = new PlayerView(playerWin, playerController);
-var videosResults = new VideosResultsView(videosWin, playerController);
+var videosResults = new VideosResultsView(resultsTab.View, playerController);
 var videoSearch = new VideoSearchView(searchWin, videosResults, playerController);
 var queue = new QueueView(queueWin, playerController);
 videoSearch.ShowSearch();

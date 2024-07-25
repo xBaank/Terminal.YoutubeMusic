@@ -6,7 +6,7 @@ using YoutubeExplode.Search;
 
 namespace Console.Views;
 
-public class VideosResultsView(Window win, PlayerController playerController)
+public class VideosResultsView(View win, PlayerController playerController)
 {
     private SpinnerView? spinner = null;
 
