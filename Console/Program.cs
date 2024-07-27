@@ -79,9 +79,9 @@ var resultsTab = new Tab
     Width = Dim.Fill(),
     Height = Dim.Fill()
 };
-var suggestionsTab = new Tab
+var recommendationsTab = new Tab
 {
-    DisplayText = "Suggestions",
+    DisplayText = "Recommendations",
     X = 0,
     Y = 0,
     Width = Dim.Fill(),
@@ -96,8 +96,16 @@ resultsTab.View = new View
     Height = Dim.Fill()
 };
 
+recommendationsTab.View = new View
+{
+    X = 0,
+    Y = 0,
+    Width = Dim.Fill(),
+    Height = Dim.Fill()
+};
+
 tabView.AddTab(resultsTab, true);
-tabView.AddTab(suggestionsTab, false);
+tabView.AddTab(recommendationsTab, false);
 
 videosWin.Add(tabView);
 
@@ -164,11 +172,18 @@ top.Add(queueWin, searchWin, videosWin, playerWin, statusBar);
 
 var player = new PlayerView(playerWin, playerController);
 var videosResults = new VideosResultsView(resultsTab.View, playerController);
+var recomendationsView = new RecommendationsView(recommendationsTab.View, playerController);
 var videoSearch = new VideoSearchView(searchWin, videosResults, playerController);
 var queue = new QueueView(queueWin, playerController);
 videoSearch.ShowSearch();
 player.ShowPlayer();
 queue.ShowQueue();
+
+_ = Task.Run(async () =>
+{
+    var recommendations = await playerController.GetRecommendationsAsync();
+    recomendationsView.ShowRecommendations(recommendations);
+});
 
 Application.Run(top);
 top.Dispose();

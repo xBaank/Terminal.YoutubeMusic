@@ -1,6 +1,7 @@
 using Console.Audio.Containers.Matroska;
 using Console.Audio.DownloadHandlers;
 using Nito.AsyncEx;
+using Nito.Disposables.Internals;
 using OpenTK.Audio.OpenAL;
 using Terminal.Gui;
 using YoutubeExplode;
@@ -110,6 +111,9 @@ public class PlayerController : IAsyncDisposable
     public async Task<List<ISearchResult>> SearchAsync(string query) =>
         await youtubeClient.Search.GetResultsAsync(query).Take(50).ToListAsync();
 
+    public async Task<List<Recommendation>> GetRecommendationsAsync() =>
+        await youtubeClient.Search.GetRecommendationsAsync().ToListAsync();
+
     public async Task SkipToAsync(IVideo video)
     {
         using var _ = await _lock.LockAsync();
@@ -119,7 +123,7 @@ public class PlayerController : IAsyncDisposable
         _currentSongIndex = _queue.IndexOf(video);
     }
 
-    public async Task SetAsync(ISearchResult item)
+    public async Task SetAsync(Recommendation recommendation)
     {
         using var _ = await _lock.LockAsync();
 
@@ -127,6 +131,23 @@ public class PlayerController : IAsyncDisposable
         _audioSender?.ClearBuffer();
         _currentSongTokenSource.Cancel();
         _currentSongIndex = 0;
+
+        var firstVideo = recommendation.VideoId is not null
+            ? await youtubeClient.Videos.GetAsync(recommendation.VideoId.Value)
+            : null;
+
+        var playlist = await youtubeClient
+            .Playlists.GetVideosAsync(recommendation.PlaylistId)
+            .ToListAsync();
+
+        _queue = [firstVideo, .. playlist];
+        _queue = _queue.WhereNotNull().DistinctBy(i => i.Id).ToList(); //Remove duplicate videos
+        QueueChanged?.Invoke(_queue);
+    }
+
+    public async Task SetAsync(ISearchResult item)
+    {
+        using var _ = await _lock.LockAsync();
 
         AL.SourceStop(_sourceId);
         _audioSender?.ClearBuffer();
