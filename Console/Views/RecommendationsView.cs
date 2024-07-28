@@ -14,11 +14,11 @@ internal class RecommendationsView(View win, PlayerController playerController)
         var dataTable = new DataTable();
 
         dataTable.Columns.Add("Title", typeof(string));
-        dataTable.Columns.Add("Authors", typeof(string));
+        dataTable.Columns.Add("Description", typeof(string));
 
         foreach (var item in recommendations)
         {
-            dataTable.Rows.Add(item.Title, item.Authors);
+            dataTable.Rows.Add(item.Title, item.Subtitle);
         }
 
         var tableView = new TableView()
