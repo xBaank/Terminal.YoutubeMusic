@@ -1,4 +1,6 @@
 ﻿using System.Globalization;
+using System.Reflection.Metadata.Ecma335;
+using AngleSharp.Common;
 using Console;
 using Console.Audio;
 using Console.Views;
@@ -42,11 +44,9 @@ var searchWin = new Window
     ColorScheme = customColors
 };
 
-var videosWin = new Window
+var videosWin = new View
 {
-    Title = "Videos",
     X = Pos.Right(queueWin),
-    BorderStyle = LineStyle.Rounded,
     Y = Pos.Bottom(searchWin),
     Width = Dim.Fill(),
     Height = Dim.Fill() - 8,
@@ -63,6 +63,52 @@ var playerWin = new Window
     ColorScheme = customColors
 };
 
+var tabView = new TabView
+{
+    X = 0,
+    Y = 0,
+    Width = Dim.Fill(),
+    Height = Dim.Fill()
+};
+
+var resultsTab = new Tab
+{
+    DisplayText = "Results",
+    X = 0,
+    Y = 0,
+    Width = Dim.Fill(),
+    Height = Dim.Fill()
+};
+var recommendationsTab = new Tab
+{
+    DisplayText = "Recommendations",
+    X = 0,
+    Y = 0,
+    Width = Dim.Fill(),
+    Height = Dim.Fill()
+};
+
+resultsTab.View = new View
+{
+    X = 0,
+    Y = 0,
+    Width = Dim.Fill(),
+    Height = Dim.Fill()
+};
+
+recommendationsTab.View = new View
+{
+    X = 0,
+    Y = 0,
+    Width = Dim.Fill(),
+    Height = Dim.Fill()
+};
+
+tabView.AddTab(recommendationsTab, true);
+tabView.AddTab(resultsTab, false);
+
+videosWin.Add(tabView);
+
 await using var playerController = new PlayerController();
 
 //TODO Add player shocuts here
@@ -70,7 +116,24 @@ var statusBar = new StatusBar(
     [
         new Shortcut(Key.Esc, "Exit", () => { }),
         new Shortcut(Key.Q.WithCtrl, "Search", searchWin.SetFocus),
-        new Shortcut(Key.L.WithCtrl, "Videos", videosWin.SetFocus),
+        new Shortcut(
+            Key.L.WithCtrl,
+            "Rotate tabs",
+            () =>
+            {
+                var current = tabView.Tabs.ToList().IndexOf(tabView.SelectedTab);
+                if (current >= tabView.Tabs.Count - 1)
+                {
+                    tabView.SelectedTab = tabView.Tabs.ElementAt(0);
+                }
+                else
+                {
+                    tabView.SelectedTab = tabView.Tabs.ElementAt(tabView.TabIndex + 1);
+                }
+                tabView.SetFocus();
+                tabView.EnsureSelectedTabIsVisible();
+            }
+        ),
         new Shortcut(Key.P.WithCtrl, "Player", playerWin.SetFocus),
         new Shortcut(Key.M.WithCtrl, "Playlist", queueWin.SetFocus),
         new Shortcut(
@@ -108,12 +171,14 @@ var statusBar = new StatusBar(
 top.Add(queueWin, searchWin, videosWin, playerWin, statusBar);
 
 var player = new PlayerView(playerWin, playerController);
-var videosResults = new VideosResultsView(videosWin, playerController);
+var videosResults = new VideosResultsView(resultsTab, tabView, playerController);
+var recomendationsView = new RecommendationsView(recommendationsTab.View, playerController);
 var videoSearch = new VideoSearchView(searchWin, videosResults, playerController);
 var queue = new QueueView(queueWin, playerController);
 videoSearch.ShowSearch();
 player.ShowPlayer();
 queue.ShowQueue();
+recomendationsView.ShowRecommendations();
 
 Application.Run(top);
 top.Dispose();

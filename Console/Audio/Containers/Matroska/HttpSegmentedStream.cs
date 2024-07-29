@@ -80,7 +80,12 @@ internal sealed class HttpSegmentedStream : Stream
         }
         else if (_positionChanged)
         {
-            _httpStream?.Seek(Math.Abs(Position - _chunkPosition), SeekOrigin.Begin);
+            var newPos = Position - _chunkPosition;
+            _httpStream?.Seek(Math.Abs(newPos), SeekOrigin.Begin);
+            if (newPos < 0)
+            {
+                await ReadNextChunk(cancellationToken);
+            }
             _positionChanged = false;
         }
 
@@ -162,7 +167,10 @@ internal sealed class HttpSegmentedStream : Stream
     private async Task ReadNextChunk(CancellationToken cancellationToken)
     {
         if (_httpStream is not null)
+        {
             await _httpStream.DisposeAsync();
+            _httpStream = null;
+        }
 
         var response = await _httpClient.GetAsync(
             AppendRangeToUrl(
