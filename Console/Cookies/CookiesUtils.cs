@@ -5,7 +5,7 @@ using System.Net;
 
 namespace Console.Cookies;
 
-public static class Cookies
+public static class CookiesUtils
 {
     private static List<Cookie> ConvertToCookies(List<NetscapeCookie> netscapeCookies)
     {
@@ -36,7 +36,7 @@ public static class Cookies
         foreach (var line in File.ReadLines(filePath))
         {
             // Skip comments and empty lines
-            if (line.StartsWith("#") || string.IsNullOrWhiteSpace(line))
+            if (line.StartsWith('#') || string.IsNullOrWhiteSpace(line))
                 continue;
 
             // Split the line into parts
@@ -60,11 +60,10 @@ public static class Cookies
         return ConvertToCookies(cookies);
     }
 
-    public static List<Cookie> GetCookies()
+    public static List<Cookie> GetCookies(string? path = null)
     {
-        var cookiesPath = Environment.GetEnvironmentVariable("COOKIES_PATH");
-        if (cookiesPath is null)
+        if (path is null)
             return [];
-        return ParseCookies(cookiesPath);
+        return ParseCookies(path);
     }
 }
