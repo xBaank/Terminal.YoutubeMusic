@@ -19,10 +19,7 @@ public class QueueView(Window win, PlayerController playerController)
             Height = Dim.Fill(),
         };
 
-        listView.KeyBindings.Clear();
-
         listView.SetSource(new ObservableCollection<string>());
-
         win.Add(listView);
 
         listView.OpenSelectedItem += async (_, args) =>
