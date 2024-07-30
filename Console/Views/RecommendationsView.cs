@@ -7,6 +7,33 @@ namespace Console.Views;
 
 internal class RecommendationsView(View view, PlayerController playerController) : Loader(view)
 {
+    private SpinnerView? spinner = null;
+
+    public void ShowLoading()
+    {
+        win.RemoveAll();
+
+        spinner?.Dispose();
+        spinner = new SpinnerView
+        {
+            X = Pos.Center(),
+            Y = Pos.Center(),
+            Width = Dim.Auto(),
+            Height = Dim.Auto(),
+            Visible = true,
+            Style = new SpinnerStyle.BouncingBall(),
+            AutoSpin = true,
+        };
+
+        win.Add(spinner);
+    }
+
+    public void HideLoading()
+    {
+        spinner?.Dispose();
+        win.Remove(spinner);
+    }
+
     public void ShowRecommendations() =>
         Task.Run(async () =>
         {

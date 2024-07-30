@@ -41,7 +41,7 @@ internal class VideosResultsView(Tab tab, TabView tabView, PlayerController play
                 dataTable.Rows.Add(
                     playlistSearchResult.Sanitize(),
                     playlistSearchResult?.Author?.ChannelTitle?.Sanitize() ?? "",
-                    ""
+                    $"{playlistSearchResult?.Count.ToString() ?? "???"} videos"
                 );
 
                 continue;

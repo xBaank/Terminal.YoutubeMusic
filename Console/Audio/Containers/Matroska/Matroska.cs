@@ -62,38 +62,52 @@ internal class Matroska : IDisposable, IAsyncDisposable
 
     public async Task AddFrames(CancellationToken cancellationToken)
     {
-        if (_cuePoints is null)
-            throw new Exception("No cues found");
+        bool isRetry = false;
 
-        if (_audioTracks is null)
-            throw new Exception("No audio tracks found");
-
-        var cuePointToSeekFrom = _cuePoints
-            .OrderByDescending(i => i.Time)
-            .First(i => i.Time <= _seekTime);
-        var cues = _cuePoints.Where(i => i.Time >= cuePointToSeekFrom.Time);
-        var clusters = cues.Select(cuePoint => new
+        do
         {
-            Cuetrack = cuePoint.TrackPositions.First(i => i.Track == _audioTracks[0].Number),
-            CueTime = cuePoint.Time
-        });
+            try
+            {
+                if (_cuePoints is null)
+                    throw new Exception("No cues found");
 
-        _seekToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                if (_audioTracks is null)
+                    throw new Exception("No audio tracks found");
 
-        try
-        {
-            foreach (var cue in clusters)
-                await WriteCluster(cue.Cuetrack.ClusterPosition, _seekToken.Token);
-        }
-        catch (OperationCanceledException)
-        {
-            //If only seek was canceled, we play again from the requested time
-            //Maybe recursion is not the best way to do this ?
-            if (!cancellationToken.IsCancellationRequested)
-                await AddFrames(cancellationToken);
-            else
-                throw;
-        }
+                var cuePointToSeekFrom = _cuePoints
+                    .OrderByDescending(i => i.Time)
+                    .First(i => i.Time <= _seekTime);
+                var cues = _cuePoints.Where(i => i.Time >= cuePointToSeekFrom.Time);
+                var clusters = cues.Select(cuePoint => new
+                {
+                    Cuetrack = cuePoint.TrackPositions.First(i =>
+                        i.Track == _audioTracks[0].Number
+                    ),
+                    CueTime = cuePoint.Time
+                });
+
+                _seekToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+                foreach (var cue in clusters)
+                {
+                    // Pass the combined cancellation token to WriteCluster
+                    await WriteCluster(cue.Cuetrack.ClusterPosition, _seekToken.Token);
+                }
+
+                // Successful completion, exit the loop
+                isRetry = false;
+            }
+            catch (OperationCanceledException)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                    throw; // Rethrow if the external cancellation token is triggered
+
+                // If we get here, it means the operation was canceled, but we want to retry
+                isRetry = true;
+                // Optionally, add a delay or exponential backoff here to avoid tight looping
+                await Task.Delay(100, cancellationToken); // Delay for a short time before retrying
+            }
+        } while (isRetry);
 
         if (!_hasFinishEventFired)
         {
