@@ -9,7 +9,6 @@ using Console.Audio.Containers.Matroska.Parsers;
 using Console.Audio.Containers.Matroska.Types;
 using Console.Audio.DownloadHandlers;
 using Console.Extensions;
-using Nito.Disposables;
 
 namespace Console.Audio.Containers.Matroska;
 

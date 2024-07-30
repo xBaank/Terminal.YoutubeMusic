@@ -1,6 +1,4 @@
 ﻿using System.Globalization;
-using System.Reflection.Metadata.Ecma335;
-using AngleSharp.Common;
 using Console;
 using Console.Audio;
 using Console.Views;
