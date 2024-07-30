@@ -23,12 +23,11 @@ public class PlayerController : IAsyncDisposable
     private readonly ALContext _context;
     private readonly int _sourceId;
     private readonly ALFormat _targetFormat;
+    private readonly YoutubeClient _youtubeClient;
     private Matroska? _matroskaPlayerBuffer = null;
     private AudioSender? _audioSender = null;
     private CancellationTokenSource _currentSongTokenSource = new();
     private bool _disposed = false;
-
-    private readonly YoutubeClient youtubeClient = new();
 
     public event Action? StateChanged;
     public event Action<IEnumerable<IVideo>>? QueueChanged; //Maybe emit state to show a loading spinner
@@ -54,8 +53,9 @@ public class PlayerController : IAsyncDisposable
     public IReadOnlyCollection<IVideo> Songs => _queue;
     public LoopState LoopState { get; set; }
 
-    public PlayerController()
+    public PlayerController(YoutubeClient youtubeClient)
     {
+        _youtubeClient = youtubeClient;
         _device = ALC.OpenDevice(Environment.GetEnvironmentVariable("DeviceName"));
         _context = ALC.CreateContext(_device, new ALContextAttributes());
         ALC.MakeContextCurrent(_context);
@@ -112,13 +112,13 @@ public class PlayerController : IAsyncDisposable
         string query,
         CancellationToken token = default
     ) =>
-        await youtubeClient
+        await _youtubeClient
             .Search.GetResultsAsync(query, token)
             .Take(50)
             .ToListAsync(cancellationToken: token);
 
     public async Task<List<Recommendation>> GetRecommendationsAsync() =>
-        await youtubeClient.Search.GetRecommendationsAsync().ToListAsync();
+        await _youtubeClient.Search.GetRecommendationsAsync().ToListAsync();
 
     public async Task SkipToAsync(IVideo video)
     {
@@ -139,10 +139,10 @@ public class PlayerController : IAsyncDisposable
         _currentSongIndex = 0;
 
         var firstVideo = recommendation.VideoId is not null
-            ? await youtubeClient.Videos.GetAsync(recommendation.VideoId.Value)
+            ? await _youtubeClient.Videos.GetAsync(recommendation.VideoId.Value)
             : null;
 
-        var playlist = await youtubeClient
+        var playlist = await _youtubeClient
             .Playlists.GetVideosAsync(recommendation.PlaylistId)
             .ToListAsync();
 
@@ -167,7 +167,7 @@ public class PlayerController : IAsyncDisposable
 
         if (item is PlaylistSearchResult playlistSearchResult)
         {
-            var videos = await youtubeClient
+            var videos = await _youtubeClient
                 .Playlists.GetVideosAsync(playlistSearchResult.Id)
                 .ToListAsync<IVideo>();
 
@@ -176,7 +176,7 @@ public class PlayerController : IAsyncDisposable
 
         if (item is ChannelSearchResult channelSearchResult)
         {
-            var videos = await youtubeClient
+            var videos = await _youtubeClient
                 .Channels.GetUploadsAsync(channelSearchResult.Id)
                 .ToListAsync<IVideo>();
 
@@ -224,7 +224,7 @@ public class PlayerController : IAsyncDisposable
         try
         {
             _matroskaPlayerBuffer = await Matroska.Create(
-                new YtDownloadUrlHandler(youtubeClient, Song.Id),
+                new YtDownloadUrlHandler(_youtubeClient, Song.Id),
                 _audioSender,
                 _currentSongTokenSource.Token
             );
