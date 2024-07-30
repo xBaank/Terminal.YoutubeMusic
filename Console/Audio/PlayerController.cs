@@ -107,8 +107,14 @@ public class PlayerController : IAsyncDisposable
             await _matroskaPlayerBuffer.Seek((long)time.TotalMilliseconds);
     }
 
-    public async Task<List<ISearchResult>> SearchAsync(string query) =>
-        await youtubeClient.Search.GetResultsAsync(query).Take(50).ToListAsync();
+    public async Task<List<ISearchResult>> SearchAsync(
+        string query,
+        CancellationToken token = default
+    ) =>
+        await youtubeClient
+            .Search.GetResultsAsync(query, token)
+            .Take(50)
+            .ToListAsync(cancellationToken: token);
 
     public async Task SkipToAsync(IVideo video)
     {

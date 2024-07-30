@@ -6,38 +6,16 @@ using YoutubeExplode.Search;
 
 namespace Console.Views;
 
-public class VideosResultsView(Window win, PlayerController playerController)
+internal class VideosResultsView(Tab tab, TabView tabView, PlayerController playerController)
+    : Loader(tab.View)
 {
-    private SpinnerView? spinner = null;
+    private View View => tab.View;
 
-    public void ShowLoading()
-    {
-        win.RemoveAll();
-
-        spinner?.Dispose();
-        spinner = new SpinnerView
-        {
-            X = Pos.Center(),
-            Y = Pos.Center(),
-            Width = Dim.Auto(),
-            Height = Dim.Auto(),
-            Visible = true,
-            Style = new SpinnerStyle.BouncingBall(),
-            AutoSpin = true,
-        };
-
-        win.Add(spinner);
-    }
-
-    public void HideLoading()
-    {
-        spinner?.Dispose();
-        win.Remove(spinner);
-    }
+    public void SetFocus() => tabView.SelectedTab = tab;
 
     public void ShowVideos(List<ISearchResult> videoSearches)
     {
-        win.RemoveAll();
+        View.RemoveAll();
 
         var dataTable = new DataTable();
 
@@ -86,7 +64,7 @@ public class VideosResultsView(Window win, PlayerController playerController)
             Table = new DataTableSource(dataTable)
         };
 
-        win.Add(tableView);
+        View.Add(tableView);
 
         tableView.CellActivated += async (_, args) =>
         {

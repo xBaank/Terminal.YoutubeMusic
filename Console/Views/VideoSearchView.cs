@@ -1,10 +1,13 @@
-﻿using Console.Audio;
+﻿using System.Threading;
+using Console.Audio;
 using Terminal.Gui;
 
 namespace Console.Views;
 
-public class VideoSearchView(Window win, VideosResultsView videosResults, PlayerController player)
+internal class VideoSearchView(Window win, VideosResultsView videosResults, PlayerController player)
 {
+    private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+
     public void ShowSearch()
     {
         win.RemoveAll();
@@ -29,11 +32,17 @@ public class VideoSearchView(Window win, VideosResultsView videosResults, Player
                 if (text is null)
                     return;
 
-                videosResults.ShowLoading();
-                var results = await player.SearchAsync(text);
-                videosResults.HideLoading();
-
-                videosResults.ShowVideos(results);
+                cancellationTokenSource.Cancel();
+                cancellationTokenSource = new CancellationTokenSource();
+                try
+                {
+                    videosResults.SetFocus();
+                    videosResults.ShowLoading();
+                    var results = await player.SearchAsync(text, cancellationTokenSource.Token);
+                    videosResults.HideLoading();
+                    videosResults.ShowVideos(results);
+                }
+                catch (TaskCanceledException) { }
             });
         };
 
