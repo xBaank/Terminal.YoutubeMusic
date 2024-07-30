@@ -1,8 +1,10 @@
 ﻿using System.Globalization;
 using Console;
 using Console.Audio;
+using Console.Cookies;
 using Console.Views;
 using Terminal.Gui;
+using YoutubeExplode;
 
 Utils.ConfigurePlatformDependencies();
 
@@ -107,7 +109,9 @@ tabView.AddTab(resultsTab, false);
 
 videosWin.Add(tabView);
 
-await using var playerController = new PlayerController();
+var cookies = Cookies.GetCookies();
+var youtubeClient = new YoutubeClient(cookies);
+await using var playerController = new PlayerController(youtubeClient);
 
 //TODO Add player shocuts here
 var statusBar = new StatusBar(
