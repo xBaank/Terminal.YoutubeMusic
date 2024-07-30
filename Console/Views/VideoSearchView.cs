@@ -6,7 +6,7 @@ namespace Console.Views;
 
 internal class VideoSearchView(Window win, VideosResultsView videosResults, PlayerController player)
 {
-    private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+    private CancellationTokenSource _cancellationTokenSource = new();
 
     public void ShowSearch()
     {
@@ -32,13 +32,13 @@ internal class VideoSearchView(Window win, VideosResultsView videosResults, Play
                 if (text is null)
                     return;
 
-                cancellationTokenSource.Cancel();
-                cancellationTokenSource = new CancellationTokenSource();
+                _cancellationTokenSource.Cancel();
+                _cancellationTokenSource = new CancellationTokenSource();
                 try
                 {
                     videosResults.SetFocus();
                     videosResults.ShowLoading();
-                    var results = await player.SearchAsync(text, cancellationTokenSource.Token);
+                    var results = await player.SearchAsync(text, _cancellationTokenSource.Token);
                     videosResults.HideLoading();
                     videosResults.ShowVideos(results);
                 }
