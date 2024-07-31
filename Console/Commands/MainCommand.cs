@@ -124,6 +124,7 @@ internal class MainCommand : ICommand
 
         videosWin.Add(tabView);
 
+        var sharedCancellationTokenSource = new SharedCancellationTokenSource();
         var accountHandler = new AccountHandler(AccountIndex)
         {
             InnerHandler = new HttpClientHandler()
@@ -193,10 +194,21 @@ internal class MainCommand : ICommand
         top.Add(queueWin, searchWin, videosWin, playerWin, statusBar);
 
         var player = new PlayerView(playerWin, playerController);
-        var videosResults = new VideosResultsView(resultsTab, tabView, playerController);
-        var recomendationsView = new RecommendationsView(recommendationsTab.View, playerController);
-        var videoSearch = new VideoSearchView(searchWin, videosResults, playerController);
         var queue = new QueueView(queueWin, playerController);
+        var videosResults = new VideosResultsView(
+            resultsTab,
+            tabView,
+            playerController,
+            queue,
+            sharedCancellationTokenSource
+        );
+        var recomendationsView = new RecommendationsView(
+            recommendationsTab.View,
+            playerController,
+            queue,
+            sharedCancellationTokenSource
+        );
+        var videoSearch = new VideoSearchView(searchWin, videosResults, playerController);
         videoSearch.ShowSearch();
         player.ShowPlayer();
         queue.ShowQueue();

@@ -5,7 +5,7 @@ using Terminal.Gui;
 
 namespace Console.Views;
 
-public class PlayerView(Window win, PlayerController player)
+internal class PlayerView(Window win, PlayerController player)
 {
     private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 

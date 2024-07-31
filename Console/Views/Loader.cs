@@ -5,9 +5,10 @@ namespace Console.Views;
 
 internal abstract class Loader(View view)
 {
+    private object _lock = new();
     private SpinnerView? spinner = null;
 
-    public void ShowLoading()
+    public virtual void ShowLoading()
     {
         view.RemoveAll();
 
@@ -26,7 +27,7 @@ internal abstract class Loader(View view)
         view.Add(spinner);
     }
 
-    public void HideLoading()
+    public virtual void HideLoading()
     {
         spinner?.Dispose();
         view.Remove(spinner);

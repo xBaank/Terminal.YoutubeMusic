@@ -5,24 +5,49 @@ using Terminal.Gui;
 
 namespace Console.Views;
 
-public class QueueView(Window win, PlayerController playerController)
+internal class QueueView(Window win, PlayerController playerController) : Loader(win)
 {
-    public void ShowQueue()
-    {
-        win.RemoveAll();
-
-        var listView = new ListView()
+    private ListView _listView =
+        new()
         {
             X = 1,
             Y = 1,
             Width = Dim.Fill(),
-            Height = Dim.Fill(),
+            Height = Dim.Fill()
         };
 
-        listView.SetSource(new ObservableCollection<string>());
-        win.Add(listView);
+    public override void HideLoading()
+    {
+        UpdateList();
+        base.HideLoading();
+    }
 
-        listView.OpenSelectedItem += async (_, args) =>
+    void UpdateList()
+    {
+        _listView.SetSource(
+            new ObservableCollection<string>(
+                playerController
+                    .Songs.Select(
+                        (i, index) =>
+                        {
+                            return playerController.Song == i
+                                ? $"Playing [{index}] {i.Title.Sanitize()}"
+                                : $"[{index}] {i.Title.Sanitize()}";
+                        }
+                    )
+                    .ToList()
+            )
+        );
+
+        win.RemoveAll();
+        win.Add(_listView);
+    }
+
+    public void ChangeTitle(string text) => win.Title = $"Playlist: {text}";
+
+    public void ShowQueue()
+    {
+        _listView.OpenSelectedItem += async (_, args) =>
         {
             var song = playerController.Songs.ElementAtOrDefault(args.Item);
 
@@ -35,24 +60,6 @@ public class QueueView(Window win, PlayerController playerController)
                 await playerController.PlayAsync();
             });
         };
-
-        void UpdateList()
-        {
-            listView.SetSource(
-                new ObservableCollection<string>(
-                    playerController
-                        .Songs.Select(
-                            (i, index) =>
-                            {
-                                return playerController.Song == i
-                                    ? $"Playing [{index}] {i.Title.Sanitize()}"
-                                    : $"[{index}] {i.Title.Sanitize()}";
-                            }
-                        )
-                        .ToList()
-                )
-            );
-        }
 
         playerController.StateChanged += UpdateList;
         playerController.QueueChanged += (_) => UpdateList();

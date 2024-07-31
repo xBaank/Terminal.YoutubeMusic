@@ -129,9 +129,12 @@ public class PlayerController : IAsyncDisposable
         _currentSongIndex = _queue.IndexOf(video);
     }
 
-    public async Task SetAsync(Recommendation recommendation)
+    public async Task SetAsync(
+        Recommendation recommendation,
+        CancellationToken cancellationToken = default
+    )
     {
-        using var _ = await _lock.LockAsync();
+        using var _ = await _lock.LockAsync(cancellationToken);
 
         AL.SourceStop(_sourceId);
         _audioSender?.ClearBuffer();
@@ -139,21 +142,21 @@ public class PlayerController : IAsyncDisposable
         _currentSongIndex = 0;
 
         var firstVideo = recommendation.VideoId is not null
-            ? await _youtubeClient.Videos.GetAsync(recommendation.VideoId.Value)
+            ? await _youtubeClient.Videos.GetAsync(recommendation.VideoId.Value, cancellationToken)
             : null;
 
         var playlist = await _youtubeClient
-            .Playlists.GetVideosAsync(recommendation.PlaylistId)
-            .ToListAsync();
+            .Playlists.GetVideosAsync(recommendation.PlaylistId, cancellationToken)
+            .ToListAsync(cancellationToken: cancellationToken);
 
         _queue = [firstVideo, .. playlist];
         _queue = _queue.WhereNotNull().DistinctBy(i => i.Id).ToList(); //Remove duplicate videos
         QueueChanged?.Invoke(_queue);
     }
 
-    public async Task SetAsync(ISearchResult item)
+    public async Task SetAsync(ISearchResult item, CancellationToken cancellationToken = default)
     {
-        using var _ = await _lock.LockAsync();
+        using var _ = await _lock.LockAsync(cancellationToken);
 
         AL.SourceStop(_sourceId);
         _audioSender?.ClearBuffer();
@@ -168,8 +171,8 @@ public class PlayerController : IAsyncDisposable
         if (item is PlaylistSearchResult playlistSearchResult)
         {
             var videos = await _youtubeClient
-                .Playlists.GetVideosAsync(playlistSearchResult.Id)
-                .ToListAsync<IVideo>();
+                .Playlists.GetVideosAsync(playlistSearchResult.Id, cancellationToken)
+                .ToListAsync<IVideo>(cancellationToken: cancellationToken);
 
             _queue = videos;
         }
@@ -177,8 +180,8 @@ public class PlayerController : IAsyncDisposable
         if (item is ChannelSearchResult channelSearchResult)
         {
             var videos = await _youtubeClient
-                .Channels.GetUploadsAsync(channelSearchResult.Id)
-                .ToListAsync<IVideo>();
+                .Channels.GetUploadsAsync(channelSearchResult.Id, cancellationToken)
+                .ToListAsync<IVideo>(cancellationToken: cancellationToken);
 
             _queue = videos;
         }

@@ -4,7 +4,12 @@ using Terminal.Gui;
 
 namespace Console.Views;
 
-internal class RecommendationsView(View view, PlayerController playerController) : Loader(view)
+internal class RecommendationsView(
+    View view,
+    PlayerController playerController,
+    QueueView queueView,
+    SharedCancellationTokenSource sharedCancellationTokenSource
+) : Loader(view)
 {
     public void ShowRecommendations() =>
         Task.Run(async () =>
@@ -34,16 +39,31 @@ internal class RecommendationsView(View view, PlayerController playerController)
                 Table = new DataTableSource(dataTable)
             };
 
+            tableView.Style.ShowHorizontalHeaderUnderline = true;
+            tableView.Style.ShowHorizontalBottomline = false;
+            tableView.Style.ShowHorizontalHeaderOverline = false;
+            tableView.Style.ShowVerticalHeaderLines = false;
+            tableView.Style.ShowVerticalCellLines = false;
+
             tableView.CellActivated += async (_, args) =>
             {
                 var item = recommendations.ElementAtOrDefault(args.Row);
                 if (item is null)
                     return;
 
+                sharedCancellationTokenSource.Cancel();
+                sharedCancellationTokenSource.Reset();
                 await Task.Run(async () =>
                 {
-                    await playerController.SetAsync(item);
-                    await playerController.PlayAsync();
+                    try
+                    {
+                        Application.Invoke(() => queueView.ShowLoading());
+                        queueView.ChangeTitle(item.Title);
+                        await playerController.SetAsync(item, sharedCancellationTokenSource.Token);
+                        await playerController.PlayAsync();
+                        Application.Invoke(() => queueView.HideLoading());
+                    }
+                    catch (TaskCanceledException) { }
                 });
             };
 

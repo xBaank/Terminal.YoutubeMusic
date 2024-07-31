@@ -1,4 +1,5 @@
 using System.Data;
+using System.Threading;
 using Console.Audio;
 using Console.Extensions;
 using Terminal.Gui;
@@ -6,8 +7,13 @@ using YoutubeExplode.Search;
 
 namespace Console.Views;
 
-internal class VideosResultsView(Tab tab, TabView tabView, PlayerController playerController)
-    : Loader(tab.View)
+internal class VideosResultsView(
+    Tab tab,
+    TabView tabView,
+    PlayerController playerController,
+    QueueView queueView,
+    SharedCancellationTokenSource sharedCancellationTokenSource
+) : Loader(tab.View)
 {
     private View View => tab.View;
 
@@ -64,6 +70,12 @@ internal class VideosResultsView(Tab tab, TabView tabView, PlayerController play
             Table = new DataTableSource(dataTable)
         };
 
+        tableView.Style.ShowHorizontalHeaderUnderline = true;
+        tableView.Style.ShowHorizontalBottomline = false;
+        tableView.Style.ShowHorizontalHeaderOverline = false;
+        tableView.Style.ShowVerticalHeaderLines = false;
+        tableView.Style.ShowVerticalCellLines = false;
+
         View.Add(tableView);
 
         tableView.CellActivated += async (_, args) =>
@@ -72,10 +84,19 @@ internal class VideosResultsView(Tab tab, TabView tabView, PlayerController play
             if (item is null)
                 return;
 
+            sharedCancellationTokenSource.Cancel();
+            sharedCancellationTokenSource.Reset();
             await Task.Run(async () =>
             {
-                await playerController.SetAsync(item);
-                await playerController.PlayAsync();
+                try
+                {
+                    Application.Invoke(() => queueView.ShowLoading());
+                    queueView.ChangeTitle(item.Title);
+                    await playerController.SetAsync(item, sharedCancellationTokenSource.Token);
+                    await playerController.PlayAsync();
+                    Application.Invoke(() => queueView.HideLoading());
+                }
+                catch (TaskCanceledException) { }
             });
         };
     }
