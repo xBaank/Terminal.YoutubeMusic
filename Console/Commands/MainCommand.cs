@@ -14,7 +14,10 @@ namespace Console.Commands;
 internal class MainCommand : ICommand
 {
     [CommandOption("cookies-path", Description = "Youtube music cookies path")]
-    public string? CookiesPath { get; set; }
+    public string? CookiesPath { get; set; } = null;
+
+    [CommandOption("account-index", Description = "Youtube music account index")]
+    public int? AccountIndex { get; set; } = null;
 
     public async ValueTask ExecuteAsync(IConsole console)
     {
@@ -121,8 +124,13 @@ internal class MainCommand : ICommand
 
         videosWin.Add(tabView);
 
+        var accountHandler = new AccountHandler(AccountIndex)
+        {
+            InnerHandler = new HttpClientHandler()
+        };
+        var httpClient = new HttpClient(accountHandler);
         var cookies = CookiesUtils.GetCookies(CookiesPath);
-        var youtubeClient = new YoutubeClient(cookies);
+        var youtubeClient = new YoutubeClient(httpClient, cookies);
         await using var playerController = new PlayerController(youtubeClient);
 
         //TODO Add player shocuts here
