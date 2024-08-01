@@ -4,6 +4,7 @@ Listen to youtube music from the terminal
 ![imagen](https://github.com/user-attachments/assets/2be7eb04-6baa-43b0-938d-8a6354a2f387)
 
 ## TODO
+- [ ] Save current playlist locally
 - [X] Implement login with cookies (either via browser or by manually grabbing them)
 - [X] Implement Youtube music suggestions
 - [X] Repeat song or list of songs
