@@ -21,8 +21,12 @@ Listen to youtube music from the terminal
 - No external dependencies (No MPV, no yt-dlp or youtube-dl)
 
 ## Login
-To login you can extract the cookies from music.youtube.com following this [instructions](https://www.reddit.com/r/youtubedl/wiki/cookies/)
-And then run
+To login you can extract the cookies from music.youtube.com using:
+- Chrome or Edge [get cookies.txt LOCALLY](https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc)
+- Firefox [cookies.txt](https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/)
+- Opera [edit this cookie](https://addons.opera.com/en/extensions/details/edit-this-cookie)
+
+and then running `dotnet .\Console.dll --cookies-path path_to_cookies.txt`
 
 ## Download
 > [!WARNING]\
