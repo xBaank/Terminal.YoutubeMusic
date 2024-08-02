@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Terminal.Gui;
+﻿using Terminal.Gui;
 
 namespace Console.Views;
 

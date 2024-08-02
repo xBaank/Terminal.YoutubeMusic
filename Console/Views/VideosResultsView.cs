@@ -1,5 +1,4 @@
 using System.Data;
-using System.Threading;
 using Console.Audio;
 using Console.Extensions;
 using Terminal.Gui;

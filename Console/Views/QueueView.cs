@@ -1,11 +1,12 @@
 ﻿using System.Collections.ObjectModel;
 using Console.Audio;
 using Console.Extensions;
+using Console.LocalPlaylists;
 using Terminal.Gui;
 
 namespace Console.Views;
 
-internal class QueueView(Window win, PlayerController playerController) : Loader(win)
+internal class QueueView(View view, PlayerController playerController) : Loader(view)
 {
     private ListView _listView =
         new()
@@ -20,6 +21,19 @@ internal class QueueView(Window win, PlayerController playerController) : Loader
     {
         UpdateList();
         base.HideLoading();
+    }
+
+    public async Task SavePlaylist()
+    {
+        var name = Utils.ShowInputDialog(
+            "Playlist name",
+            "Give the playlist a name",
+            view.ColorScheme
+        );
+        if (name is null)
+            return;
+
+        await PlaylistExporter.ExportAsync(name, playerController.Songs);
     }
 
     void UpdateList()
@@ -39,11 +53,11 @@ internal class QueueView(Window win, PlayerController playerController) : Loader
             )
         );
 
-        win.RemoveAll();
-        win.Add(_listView);
+        view.RemoveAll();
+        view.Add(_listView);
     }
 
-    public void ChangeTitle(string text) => win.Title = $"Playlist: {text}";
+    public void ChangeTitle(string text) => view.Title = $"Playlist: {text}";
 
     public void ShowQueue()
     {

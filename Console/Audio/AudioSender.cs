@@ -5,7 +5,7 @@ namespace Console.Audio;
 
 internal class AudioSender(int sourceId, ALFormat targetFormat) : IAsyncDisposable
 {
-    private readonly Channel<PcmPacket> _queue = Channel.CreateBounded<PcmPacket>(50);
+    private readonly Channel<PcmPacket> _queue = Channel.CreateBounded<PcmPacket>(150);
     public readonly int SampleRate = 48000;
     public readonly int Channels = 2;
     private readonly int[] _buffers = AL.GenBuffers(50);

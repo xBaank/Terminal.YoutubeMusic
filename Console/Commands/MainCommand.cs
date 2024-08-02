@@ -102,6 +102,14 @@ internal class MainCommand : ICommand
             Width = Dim.Fill(),
             Height = Dim.Fill()
         };
+        var localPlaylistsTab = new Tab
+        {
+            DisplayText = "Saved playlists",
+            X = 0,
+            Y = 0,
+            Width = Dim.Fill(),
+            Height = Dim.Fill()
+        };
 
         resultsTab.View = new View
         {
@@ -119,8 +127,17 @@ internal class MainCommand : ICommand
             Height = Dim.Fill()
         };
 
+        localPlaylistsTab.View = new View
+        {
+            X = 0,
+            Y = 0,
+            Width = Dim.Fill(),
+            Height = Dim.Fill()
+        };
+
         tabView.AddTab(recommendationsTab, true);
         tabView.AddTab(resultsTab, false);
+        tabView.AddTab(localPlaylistsTab, false);
 
         videosWin.Add(tabView);
 
@@ -134,7 +151,34 @@ internal class MainCommand : ICommand
         var youtubeClient = new YoutubeClient(httpClient, cookies);
         await using var playerController = new PlayerController(youtubeClient);
 
-        //TODO Add player shocuts here
+        var player = new PlayerView(playerWin, playerController);
+        var queue = new QueueView(queueWin, playerController);
+        var videosResults = new VideosResultsView(
+            resultsTab,
+            tabView,
+            playerController,
+            queue,
+            sharedCancellationTokenSource
+        );
+        var recomendations = new RecommendationsView(
+            recommendationsTab.View,
+            playerController,
+            queue,
+            sharedCancellationTokenSource
+        );
+        var videoSearch = new VideoSearchView(searchWin, videosResults, playerController);
+        var localPlaylist = new LocalPlaylistsView(
+            localPlaylistsTab.View,
+            queue,
+            playerController,
+            sharedCancellationTokenSource
+        );
+        videoSearch.ShowSearch();
+        player.ShowPlayer();
+        queue.ShowQueue();
+        recomendations.ShowRecommendations();
+        localPlaylist.ShowLocalPlaylists();
+
         var statusBar = new StatusBar(
             [
                 new Shortcut(Key.Esc, "Exit", () => { }),
@@ -159,6 +203,11 @@ internal class MainCommand : ICommand
                 ),
                 new Shortcut(Key.P.WithCtrl, "Player", playerWin.SetFocus),
                 new Shortcut(Key.M.WithCtrl, "Playlist", queueWin.SetFocus),
+                new Shortcut(
+                    Key.P.WithAlt,
+                    "Save Playlist",
+                    async () => await queue.SavePlaylist()
+                ),
                 new Shortcut(
                     Key.Space.WithCtrl,
                     "Seek",
@@ -192,27 +241,6 @@ internal class MainCommand : ICommand
         );
 
         top.Add(queueWin, searchWin, videosWin, playerWin, statusBar);
-
-        var player = new PlayerView(playerWin, playerController);
-        var queue = new QueueView(queueWin, playerController);
-        var videosResults = new VideosResultsView(
-            resultsTab,
-            tabView,
-            playerController,
-            queue,
-            sharedCancellationTokenSource
-        );
-        var recomendationsView = new RecommendationsView(
-            recommendationsTab.View,
-            playerController,
-            queue,
-            sharedCancellationTokenSource
-        );
-        var videoSearch = new VideoSearchView(searchWin, videosResults, playerController);
-        videoSearch.ShowSearch();
-        player.ShowPlayer();
-        queue.ShowQueue();
-        recomendationsView.ShowRecommendations();
 
         Application.Run(top);
         top.Dispose();

@@ -3,7 +3,6 @@ using Console.Audio.DownloadHandlers;
 using Nito.AsyncEx;
 using Nito.Disposables.Internals;
 using OpenTK.Audio.OpenAL;
-using Terminal.Gui;
 using YoutubeExplode;
 using YoutubeExplode.Search;
 using YoutubeExplode.Videos;
@@ -120,13 +119,33 @@ public class PlayerController : IAsyncDisposable
     public async Task<List<Recommendation>> GetRecommendationsAsync() =>
         await _youtubeClient.Search.GetRecommendationsAsync().ToListAsync();
 
-    public async Task SkipToAsync(IVideo video)
+    private void ResetState()
     {
-        using var _ = await _lock.LockAsync();
         AL.SourceStop(_sourceId);
         _audioSender?.ClearBuffer();
         _currentSongTokenSource.Cancel();
+    }
+
+    public async Task SkipToAsync(IVideo video)
+    {
+        using var _ = await _lock.LockAsync();
+
+        ResetState();
         _currentSongIndex = _queue.IndexOf(video);
+    }
+
+    public async Task SetAsync(
+        IReadOnlyCollection<IVideo> videos,
+        CancellationToken cancellationToken = default
+    )
+    {
+        using var _ = await _lock.LockAsync(cancellationToken);
+
+        ResetState();
+        _currentSongIndex = 0;
+
+        _queue = [.. videos];
+        QueueChanged?.Invoke(_queue);
     }
 
     public async Task SetAsync(
@@ -136,9 +155,7 @@ public class PlayerController : IAsyncDisposable
     {
         using var _ = await _lock.LockAsync(cancellationToken);
 
-        AL.SourceStop(_sourceId);
-        _audioSender?.ClearBuffer();
-        _currentSongTokenSource.Cancel();
+        ResetState();
         _currentSongIndex = 0;
 
         var firstVideo = recommendation.VideoId is not null
@@ -158,9 +175,7 @@ public class PlayerController : IAsyncDisposable
     {
         using var _ = await _lock.LockAsync(cancellationToken);
 
-        AL.SourceStop(_sourceId);
-        _audioSender?.ClearBuffer();
-        _currentSongTokenSource.Cancel();
+        ResetState();
         _currentSongIndex = 0;
 
         if (item is VideoSearchResult videoSearchResult)
