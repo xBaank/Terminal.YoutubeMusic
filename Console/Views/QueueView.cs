@@ -1,7 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using Console.Audio;
 using Console.Extensions;
-using Console.LocalPlaylists;
 using Terminal.Gui;
 
 namespace Console.Views;
@@ -33,7 +32,7 @@ internal class QueueView(View view, PlayerController playerController) : Loader(
         if (name is null)
             return;
 
-        await PlaylistExporter.ExportAsync(name, playerController.Songs);
+        throw new NotImplementedException();
     }
 
     void UpdateList()

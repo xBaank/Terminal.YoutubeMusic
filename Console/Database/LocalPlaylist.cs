@@ -1,5 +1,8 @@
-﻿namespace Console.Database;
+﻿using Microsoft.EntityFrameworkCore;
 
+namespace Console.Database;
+
+[PrimaryKey("PlaylistId")]
 internal class LocalPlaylist
 {
     public int PlaylistId { get; set; }

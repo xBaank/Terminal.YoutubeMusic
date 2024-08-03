@@ -1,6 +1,4 @@
 ﻿using System.Runtime.InteropServices;
-using System.Text.Json;
-using Console.LocalPlaylists;
 using OpenTK.Audio.OpenAL;
 using Terminal.Gui;
 
@@ -8,10 +6,6 @@ namespace Console;
 
 public static class Utils
 {
-    public const string PlaylistDirectiory = "Playlists";
-    public static readonly JsonSerializerOptions jsonSerializerOptions =
-        new() { Converters = { new VideoIdConverter() }, };
-
     private static bool _isShowing = false;
 
     public static void ConfigurePlatformDependencies()

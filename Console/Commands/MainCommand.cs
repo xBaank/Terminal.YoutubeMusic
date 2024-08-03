@@ -7,6 +7,7 @@ using Console.Cookies;
 using Console.Database;
 using Console.Extensions;
 using Console.Views;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Terminal.Gui;
 using YoutubeExplode;
@@ -175,12 +176,21 @@ internal class MainCommand : ICommand
                     localPlaylistsTab.View,
                     queue,
                     playerController,
-                    sharedCancellationTokenSource
+                    sharedCancellationTokenSource,
+                    provider
                 );
+            })
+            .AddScoped(provider =>
+            {
+                var playerController = provider.GetRequiredService<PlayerController>();
+                var queue = provider.GetRequiredService<QueueView>();
+                return new StatusBarFactory(searchWin, playerWin, queue, tabView, playerController);
             })
             .BuildServiceProvider();
 
-        // Resolve and use services
+        var dbContext = serviceProvider.GetRequiredService<MyDbContext>();
+        dbContext.Database.Migrate();
+
         await using var playerController = serviceProvider.GetRequiredService<PlayerController>();
         var playerView = serviceProvider.GetRequiredService<PlayerView>();
         var queueView = serviceProvider.GetRequiredService<QueueView>();
@@ -188,6 +198,7 @@ internal class MainCommand : ICommand
         var recommendationsView = serviceProvider.GetRequiredService<RecommendationsView>();
         var videoSearchView = serviceProvider.GetRequiredService<VideoSearchView>();
         var localPlaylistsView = serviceProvider.GetRequiredService<LocalPlaylistsView>();
+        var statusBarFactory = serviceProvider.GetRequiredService<StatusBarFactory>();
 
         videoSearchView.ShowSearch();
         playerView.ShowPlayer();
@@ -195,68 +206,7 @@ internal class MainCommand : ICommand
         recommendationsView.ShowRecommendations();
         localPlaylistsView.ShowLocalPlaylists();
 
-        var statusBar = new StatusBar(
-            [
-                new Shortcut(Key.Esc, "Exit", () => { }),
-                new Shortcut(Key.Q.WithCtrl, "Search", searchWin.SetFocus),
-                new Shortcut(
-                    Key.L.WithCtrl,
-                    "Rotate tabs",
-                    () =>
-                    {
-                        var current = tabView.Tabs.ToList().IndexOf(tabView.SelectedTab);
-                        if (current == tabView.Tabs.Count - 1)
-                        {
-                            tabView.SelectedTab = tabView.Tabs.ElementAt(0);
-                        }
-                        else
-                        {
-                            tabView.SelectedTab = tabView.Tabs.ElementAt(current + 1);
-                        }
-                        tabView.SetFocus();
-                        tabView.EnsureSelectedTabIsVisible();
-                    }
-                ),
-                new Shortcut(Key.P.WithCtrl, "Player", playerWin.SetFocus),
-                new Shortcut(Key.M.WithCtrl, "Playlist", queueWin.SetFocus),
-                new Shortcut(
-                    Key.P.WithAlt,
-                    "Save Playlist",
-                    async () => await queueView.SavePlaylist()
-                ),
-                new Shortcut(
-                    Key.Space.WithCtrl,
-                    "Seek",
-                    async () =>
-                    {
-                        var result = Utils.ShowInputDialog(
-                            "Seek time",
-                            "Enter seek time with the format : HH:MM:SS",
-                            customColors
-                        );
-
-                        if (result is null)
-                        {
-                            return;
-                        }
-
-                        var isParsed = TimeSpan.TryParseExact(
-                            result,
-                            "g",
-                            CultureInfo.InvariantCulture,
-                            out var time
-                        );
-
-                        if (isParsed)
-                        {
-                            await playerController.SeekAsync(time);
-                        }
-                    }
-                ),
-            ]
-        );
-
-        top.Add(queueWin, searchWin, videosWin, playerWin, statusBar);
+        top.Add(queueWin, searchWin, videosWin, playerWin, statusBarFactory.Create());
 
         Application.Run(top);
         top.Dispose();

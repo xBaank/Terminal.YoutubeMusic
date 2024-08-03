@@ -7,7 +7,7 @@ internal abstract class Loader(View view)
     private object _lock = new();
     private SpinnerView? spinner = null;
 
-    protected View View => view;
+    public View View => view;
 
     public virtual void ShowLoading()
     {
