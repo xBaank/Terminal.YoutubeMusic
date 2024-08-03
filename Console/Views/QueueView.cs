@@ -1,11 +1,17 @@
 ﻿using System.Collections.ObjectModel;
 using Console.Audio;
 using Console.Extensions;
+using Console.Repositories;
+using Microsoft.Extensions.DependencyInjection;
 using Terminal.Gui;
 
 namespace Console.Views;
 
-internal class QueueView(View view, PlayerController playerController) : Loader(view)
+internal class QueueView(
+    View view,
+    PlayerController playerController,
+    IServiceProvider serviceProvider
+) : Loader(view)
 {
     private ListView _listView =
         new()
@@ -24,6 +30,9 @@ internal class QueueView(View view, PlayerController playerController) : Loader(
 
     public async Task SavePlaylist()
     {
+        await using var scope = serviceProvider.CreateAsyncScope();
+        var repo = scope.ServiceProvider.GetRequiredService<LocalPlaylistsRepository>();
+        var localPlaylistsView = scope.ServiceProvider.GetRequiredService<LocalPlaylistsView>();
         var name = Utils.ShowInputDialog(
             "Playlist name",
             "Give the playlist a name",
@@ -32,7 +41,8 @@ internal class QueueView(View view, PlayerController playerController) : Loader(
         if (name is null)
             return;
 
-        throw new NotImplementedException();
+        await repo.SavePlaylist(name, playerController.Songs);
+        await localPlaylistsView.ShowLocalPlaylists();
     }
 
     void UpdateList()

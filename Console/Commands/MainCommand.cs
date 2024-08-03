@@ -6,6 +6,7 @@ using Console.Audio;
 using Console.Cookies;
 using Console.Database;
 using Console.Extensions;
+using Console.Repositories;
 using Console.Views;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -106,6 +107,7 @@ internal class MainCommand : ICommand
 
         var serviceProvider = new ServiceCollection()
             .AddScoped<MyDbContext>()
+            .AddScoped<LocalPlaylistsRepository>()
             .AddSingleton<SharedCancellationTokenSource>()
             .AddSingleton<HttpClient>()
             .AddSingleton(provider =>
@@ -131,7 +133,7 @@ internal class MainCommand : ICommand
             .AddSingleton(provider =>
             {
                 var playerController = provider.GetRequiredService<PlayerController>();
-                return new QueueView(queueWin, playerController);
+                return new QueueView(queueWin, playerController, provider);
             })
             .AddSingleton(provider =>
             {
@@ -180,7 +182,7 @@ internal class MainCommand : ICommand
                     provider
                 );
             })
-            .AddScoped(provider =>
+            .AddSingleton(provider =>
             {
                 var playerController = provider.GetRequiredService<PlayerController>();
                 var queue = provider.GetRequiredService<QueueView>();
@@ -204,9 +206,11 @@ internal class MainCommand : ICommand
         playerView.ShowPlayer();
         queueView.ShowQueue();
         recommendationsView.ShowRecommendations();
-        localPlaylistsView.ShowLocalPlaylists();
+        await localPlaylistsView.ShowLocalPlaylists();
 
-        top.Add(queueWin, searchWin, videosWin, playerWin, statusBarFactory.Create());
+        var statusBar = statusBarFactory.Create();
+
+        top.Add(queueWin, searchWin, videosWin, playerWin, statusBar);
 
         Application.Run(top);
         top.Dispose();

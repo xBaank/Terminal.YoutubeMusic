@@ -4,9 +4,9 @@ namespace Console.Database;
 
 internal class LocalPlaylistSong
 {
-    public required int PlaylistId { get; set; }
-    public required LocalPlaylist Playlist { get; set; }
+    public int PlaylistId { get; set; }
+    public LocalPlaylist? Playlist { get; set; }
 
-    public required string SongId { get; set; }
-    public required LocalSong Song { get; set; }
+    public string? SongId { get; set; }
+    public LocalSong? Song { get; set; }
 }
