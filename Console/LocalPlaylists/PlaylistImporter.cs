@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Console.Database;
 using YoutubeExplode.Videos;
 using static Console.Utils;
 
@@ -21,7 +22,8 @@ internal static class PlaylistImporter
         var path = Path.Combine(PlaylistDirectiory, playlistName);
         var jsonPath = Path.ChangeExtension(path, "json");
         using var file = File.OpenRead(jsonPath);
-        return await JsonSerializer.DeserializeAsync<List<JsonVideo>>(
+
+        return await JsonSerializer.DeserializeAsync<List<LocalSong>>(
                 file,
                 jsonSerializerOptions,
                 cancellationToken: cancellationToken
