@@ -61,19 +61,12 @@ internal class VideosResultsView(
 
         var tableView = new TableView()
         {
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill(),
             FullRowSelect = true,
             Table = new DataTableSource(dataTable)
-        };
-
-        tableView.Style.ShowHorizontalHeaderUnderline = true;
-        tableView.Style.ShowHorizontalBottomline = false;
-        tableView.Style.ShowHorizontalHeaderOverline = false;
-        tableView.Style.ShowVerticalHeaderLines = false;
-        tableView.Style.ShowVerticalCellLines = false;
+        }
+            .WithPos(0)
+            .WithFill()
+            .WithCleanStyle();
 
         View.Add(tableView);
 

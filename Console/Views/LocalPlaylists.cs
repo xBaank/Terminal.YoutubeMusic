@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using Console.Audio;
+using Console.Extensions;
 using Console.LocalPlaylists;
 using Terminal.Gui;
 
@@ -20,14 +21,10 @@ internal class LocalPlaylistsView : IDisposable
         SharedCancellationTokenSource sharedCancellationTokenSource
     )
     {
-        _tableView = new TableView()
-        {
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill(),
-            FullRowSelect = true,
-        };
+        _tableView = new TableView() { FullRowSelect = true }
+            .WithPos(0)
+            .WithFill()
+            .WithCleanStyle();
 
         _tableView.CellActivated += async (_, args) =>
         {
@@ -52,12 +49,6 @@ internal class LocalPlaylistsView : IDisposable
                 catch (TaskCanceledException) { }
             });
         };
-
-        _tableView.Style.ShowHorizontalHeaderUnderline = true;
-        _tableView.Style.ShowHorizontalBottomline = false;
-        _tableView.Style.ShowHorizontalHeaderOverline = false;
-        _tableView.Style.ShowVerticalHeaderLines = false;
-        _tableView.Style.ShowVerticalCellLines = false;
 
         _playlistsNames = PlaylistImporter.ListPlaylists();
         _watcher.Changed += (_, _) =>

@@ -9,10 +9,8 @@ namespace Console;
 public static class Utils
 {
     public const string PlaylistDirectiory = "Playlists";
-    public static JsonSerializerOptions jsonSerializerOptions = new JsonSerializerOptions
-    {
-        Converters = { new VideoIdConverter() },
-    };
+    public static readonly JsonSerializerOptions jsonSerializerOptions =
+        new() { Converters = { new VideoIdConverter() }, };
 
     private static bool _isShowing = false;
 

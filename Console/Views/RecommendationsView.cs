@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using Console.Audio;
+using Console.Extensions;
 using Terminal.Gui;
 
 namespace Console.Views;
@@ -31,19 +32,12 @@ internal class RecommendationsView(
 
             var tableView = new TableView()
             {
-                X = 0,
-                Y = 0,
-                Width = Dim.Fill(),
-                Height = Dim.Fill(),
                 FullRowSelect = true,
                 Table = new DataTableSource(dataTable)
-            };
-
-            tableView.Style.ShowHorizontalHeaderUnderline = true;
-            tableView.Style.ShowHorizontalBottomline = false;
-            tableView.Style.ShowHorizontalHeaderOverline = false;
-            tableView.Style.ShowVerticalHeaderLines = false;
-            tableView.Style.ShowVerticalCellLines = false;
+            }
+                .WithPos(0)
+                .WithFill()
+                .WithCleanStyle();
 
             tableView.CellActivated += async (_, args) =>
             {

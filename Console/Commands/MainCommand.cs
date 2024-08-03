@@ -4,6 +4,7 @@ using CliFx.Attributes;
 using CliFx.Infrastructure;
 using Console.Audio;
 using Console.Cookies;
+using Console.Extensions;
 using Console.Views;
 using Terminal.Gui;
 using YoutubeExplode;
@@ -78,62 +79,21 @@ internal class MainCommand : ICommand
             ColorScheme = customColors
         };
 
-        var tabView = new TabView
-        {
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill()
-        };
+        var tabView = new TabView().WithPos(0).WithFill();
 
-        var resultsTab = new Tab
-        {
-            DisplayText = "Results",
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill()
-        };
-        var recommendationsTab = new Tab
-        {
-            DisplayText = "Recommendations",
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill()
-        };
-        var localPlaylistsTab = new Tab
-        {
-            DisplayText = "Saved playlists",
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill()
-        };
+        var resultsTab = new Tab { DisplayText = "Results" }
+            .WithPos(0)
+            .WithFill();
+        var recommendationsTab = new Tab { DisplayText = "Recommendations" }
+            .WithPos(0)
+            .WithFill();
+        var localPlaylistsTab = new Tab { DisplayText = "Saved playlists" }
+            .WithPos(0)
+            .WithFill();
 
-        resultsTab.View = new View
-        {
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill()
-        };
-
-        recommendationsTab.View = new View
-        {
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill()
-        };
-
-        localPlaylistsTab.View = new View
-        {
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill()
-        };
+        resultsTab.View = new View().WithPos(0).WithFill();
+        recommendationsTab.View = new View().WithPos(0).WithFill();
+        localPlaylistsTab.View = new View().WithPos(0).WithFill();
 
         tabView.AddTab(recommendationsTab, true);
         tabView.AddTab(resultsTab, false);
@@ -189,13 +149,13 @@ internal class MainCommand : ICommand
                     () =>
                     {
                         var current = tabView.Tabs.ToList().IndexOf(tabView.SelectedTab);
-                        if (current >= tabView.Tabs.Count - 1)
+                        if (current == tabView.Tabs.Count - 1)
                         {
                             tabView.SelectedTab = tabView.Tabs.ElementAt(0);
                         }
                         else
                         {
-                            tabView.SelectedTab = tabView.Tabs.ElementAt(tabView.TabIndex + 1);
+                            tabView.SelectedTab = tabView.Tabs.ElementAt(current + 1);
                         }
                         tabView.SetFocus();
                         tabView.EnsureSelectedTabIsVisible();
