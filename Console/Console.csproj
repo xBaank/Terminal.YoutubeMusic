@@ -10,6 +10,10 @@
     <PackageReference Include="CliFx" Version="2.3.5" />
     <PackageReference Include="Concentus" Version="2.2.2" />
     <PackageReference Include="Concentus.Native" Version="1.5.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.7">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.7" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
     <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
