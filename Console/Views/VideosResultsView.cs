@@ -14,8 +14,6 @@ internal class VideosResultsView(
     SharedCancellationTokenSource sharedCancellationTokenSource
 ) : Loader(tab.View)
 {
-    private View View => tab.View;
-
     public void SetFocus() => tabView.SelectedTab = tab;
 
     public void ShowVideos(List<ISearchResult> videoSearches)

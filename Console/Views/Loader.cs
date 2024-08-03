@@ -7,9 +7,11 @@ internal abstract class Loader(View view)
     private object _lock = new();
     private SpinnerView? spinner = null;
 
+    protected View View => view;
+
     public virtual void ShowLoading()
     {
-        view.RemoveAll();
+        View.RemoveAll();
 
         spinner?.Dispose();
         spinner = new SpinnerView
@@ -23,12 +25,12 @@ internal abstract class Loader(View view)
             AutoSpin = true,
         };
 
-        view.Add(spinner);
+        View.Add(spinner);
     }
 
     public virtual void HideLoading()
     {
         spinner?.Dispose();
-        view.Remove(spinner);
+        View.Remove(spinner);
     }
 }

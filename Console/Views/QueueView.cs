@@ -28,7 +28,7 @@ internal class QueueView(View view, PlayerController playerController) : Loader(
         var name = Utils.ShowInputDialog(
             "Playlist name",
             "Give the playlist a name",
-            view.ColorScheme
+            View.ColorScheme
         );
         if (name is null)
             return;
@@ -53,11 +53,11 @@ internal class QueueView(View view, PlayerController playerController) : Loader(
             )
         );
 
-        view.RemoveAll();
-        view.Add(_listView);
+        View.RemoveAll();
+        View.Add(_listView);
     }
 
-    public void ChangeTitle(string text) => view.Title = $"Playlist: {text}";
+    public void ChangeTitle(string text) => View.Title = $"Playlist: {text}";
 
     public void ShowQueue()
     {

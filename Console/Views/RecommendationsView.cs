@@ -18,7 +18,7 @@ internal class RecommendationsView(
             Application.Invoke(() => ShowLoading());
             var recommendations = await playerController.GetRecommendationsAsync();
             Application.Invoke(() => HideLoading());
-            Application.Invoke(() => view.RemoveAll());
+            Application.Invoke(() => View.RemoveAll());
 
             var dataTable = new DataTable();
 
@@ -61,6 +61,6 @@ internal class RecommendationsView(
                 });
             };
 
-            Application.Invoke(() => view.Add(tableView));
+            Application.Invoke(() => View.Add(tableView));
         });
 }

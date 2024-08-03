@@ -11,7 +11,7 @@ internal class LocalSong : IVideo
     public required Author Author { get; set; }
     public required TimeSpan? Duration { get; set; }
     public required IReadOnlyList<Thumbnail> Thumbnails { get; set; }
-    public ICollection<LocalPlaylistSong> PlaylistSongs { get; set; }
+    public ICollection<LocalPlaylistSong>? PlaylistSongs { get; set; }
 
     VideoId IVideo.Id => new(InternalId);
 }
