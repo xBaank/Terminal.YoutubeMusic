@@ -1,11 +1,17 @@
 ﻿using System.Collections.ObjectModel;
 using Console.Audio;
 using Console.Extensions;
+using Console.Repositories;
+using Microsoft.Extensions.DependencyInjection;
 using Terminal.Gui;
 
 namespace Console.Views;
 
-internal class QueueView(Window win, PlayerController playerController) : Loader(win)
+internal class QueueView(
+    View view,
+    PlayerController playerController,
+    IServiceProvider serviceProvider
+) : Loader(view)
 {
     private ListView _listView =
         new()
@@ -20,6 +26,29 @@ internal class QueueView(Window win, PlayerController playerController) : Loader
     {
         UpdateList();
         base.HideLoading();
+    }
+
+    public async Task SavePlaylist()
+    {
+        var songs = playerController.Songs.ToList();
+
+        if (songs.Count == 0)
+            return;
+
+        var name = Utils.ShowInputDialog(
+            "Playlist name",
+            "Give the playlist a name",
+            View.ColorScheme
+        );
+
+        if (name is null)
+            return;
+
+        await using var scope = serviceProvider.CreateAsyncScope();
+        using var repo = scope.ServiceProvider.GetRequiredService<LocalPlaylistsRepository>();
+        var localPlaylistsView = scope.ServiceProvider.GetRequiredService<LocalPlaylistsView>();
+        await repo.SavePlaylist(name, songs);
+        localPlaylistsView.ShowLocalPlaylists();
     }
 
     void UpdateList()
@@ -39,11 +68,11 @@ internal class QueueView(Window win, PlayerController playerController) : Loader
             )
         );
 
-        win.RemoveAll();
-        win.Add(_listView);
+        View.RemoveAll();
+        View.Add(_listView);
     }
 
-    public void ChangeTitle(string text) => win.Title = $"Playlist: {text}";
+    public void ChangeTitle(string text) => View.Title = $"Playlist: {text}";
 
     public void ShowQueue()
     {

@@ -4,7 +4,12 @@ using CliFx.Attributes;
 using CliFx.Infrastructure;
 using Console.Audio;
 using Console.Cookies;
+using Console.Database;
+using Console.Extensions;
+using Console.Repositories;
 using Console.Views;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Terminal.Gui;
 using YoutubeExplode;
 
@@ -78,141 +83,133 @@ internal class MainCommand : ICommand
             ColorScheme = customColors
         };
 
-        var tabView = new TabView
-        {
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill()
-        };
+        var tabView = new TabView().WithPos(0).WithFill();
 
-        var resultsTab = new Tab
-        {
-            DisplayText = "Results",
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill()
-        };
-        var recommendationsTab = new Tab
-        {
-            DisplayText = "Recommendations",
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill()
-        };
+        var resultsTab = new Tab { DisplayText = "Results" }
+            .WithPos(0)
+            .WithFill();
+        var recommendationsTab = new Tab { DisplayText = "Recommendations" }
+            .WithPos(0)
+            .WithFill();
+        var localPlaylistsTab = new Tab { DisplayText = "Saved playlists" }
+            .WithPos(0)
+            .WithFill();
 
-        resultsTab.View = new View
-        {
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill()
-        };
-
-        recommendationsTab.View = new View
-        {
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill()
-        };
+        resultsTab.View = new View().WithPos(0).WithFill();
+        recommendationsTab.View = new View().WithPos(0).WithFill();
+        localPlaylistsTab.View = new View().WithPos(0).WithFill();
 
         tabView.AddTab(recommendationsTab, true);
         tabView.AddTab(resultsTab, false);
+        tabView.AddTab(localPlaylistsTab, false);
 
         videosWin.Add(tabView);
 
-        var sharedCancellationTokenSource = new SharedCancellationTokenSource();
-        var accountHandler = new AccountHandler(AccountIndex)
-        {
-            InnerHandler = new HttpClientHandler()
-        };
-        var httpClient = new HttpClient(accountHandler);
-        var cookies = CookiesUtils.GetCookies(CookiesPath);
-        var youtubeClient = new YoutubeClient(httpClient, cookies);
-        await using var playerController = new PlayerController(youtubeClient);
+        var serviceProvider = new ServiceCollection()
+            .AddScoped<MyDbContext>()
+            .AddScoped<LocalPlaylistsRepository>()
+            .AddSingleton<SharedCancellationTokenSource>()
+            .AddSingleton<HttpClient>()
+            .AddSingleton(provider =>
+            {
+                var youtubeClient = provider.GetRequiredService<YoutubeClient>();
+                return new PlayerController(youtubeClient);
+            })
+            .AddSingleton(provider =>
+            {
+                var httpClient = provider.GetRequiredService<HttpClient>();
+                return new AccountHandler(AccountIndex) { InnerHandler = new HttpClientHandler() };
+            })
+            .AddSingleton(provider =>
+            {
+                var httpClient = provider.GetRequiredService<HttpClient>();
+                return new YoutubeClient(httpClient, CookiesUtils.GetCookies(CookiesPath));
+            })
+            .AddSingleton(provider =>
+            {
+                var playerController = provider.GetRequiredService<PlayerController>();
+                return new PlayerView(playerWin, playerController);
+            })
+            .AddSingleton(provider =>
+            {
+                var playerController = provider.GetRequiredService<PlayerController>();
+                return new QueueView(queueWin, playerController, provider);
+            })
+            .AddSingleton(provider =>
+            {
+                var playerController = provider.GetRequiredService<PlayerController>();
+                var queue = provider.GetRequiredService<QueueView>();
+                var sharedCancellationTokenSource =
+                    provider.GetRequiredService<SharedCancellationTokenSource>();
+                return new VideosResultsView(
+                    resultsTab,
+                    tabView,
+                    playerController,
+                    queue,
+                    sharedCancellationTokenSource
+                );
+            })
+            .AddSingleton(provider =>
+            {
+                var playerController = provider.GetRequiredService<PlayerController>();
+                var queue = provider.GetRequiredService<QueueView>();
+                var sharedCancellationTokenSource =
+                    provider.GetRequiredService<SharedCancellationTokenSource>();
+                return new RecommendationsView(
+                    recommendationsTab.View,
+                    playerController,
+                    queue,
+                    sharedCancellationTokenSource
+                );
+            })
+            .AddSingleton(provider =>
+            {
+                var playerController = provider.GetRequiredService<PlayerController>();
+                var videosResults = provider.GetRequiredService<VideosResultsView>();
+                return new VideoSearchView(searchWin, videosResults, playerController);
+            })
+            .AddSingleton(provider =>
+            {
+                var playerController = provider.GetRequiredService<PlayerController>();
+                var queue = provider.GetRequiredService<QueueView>();
+                var sharedCancellationTokenSource =
+                    provider.GetRequiredService<SharedCancellationTokenSource>();
+                return new LocalPlaylistsView(
+                    localPlaylistsTab.View,
+                    queue,
+                    playerController,
+                    sharedCancellationTokenSource,
+                    provider
+                );
+            })
+            .AddSingleton(provider =>
+            {
+                var playerController = provider.GetRequiredService<PlayerController>();
+                var queue = provider.GetRequiredService<QueueView>();
+                return new StatusBarFactory(searchWin, playerWin, queue, tabView, playerController);
+            })
+            .BuildServiceProvider();
 
-        //TODO Add player shocuts here
-        var statusBar = new StatusBar(
-            [
-                new Shortcut(Key.Esc, "Exit", () => { }),
-                new Shortcut(Key.Q.WithCtrl, "Search", searchWin.SetFocus),
-                new Shortcut(
-                    Key.L.WithCtrl,
-                    "Rotate tabs",
-                    () =>
-                    {
-                        var current = tabView.Tabs.ToList().IndexOf(tabView.SelectedTab);
-                        if (current >= tabView.Tabs.Count - 1)
-                        {
-                            tabView.SelectedTab = tabView.Tabs.ElementAt(0);
-                        }
-                        else
-                        {
-                            tabView.SelectedTab = tabView.Tabs.ElementAt(tabView.TabIndex + 1);
-                        }
-                        tabView.SetFocus();
-                        tabView.EnsureSelectedTabIsVisible();
-                    }
-                ),
-                new Shortcut(Key.P.WithCtrl, "Player", playerWin.SetFocus),
-                new Shortcut(Key.M.WithCtrl, "Playlist", queueWin.SetFocus),
-                new Shortcut(
-                    Key.Space.WithCtrl,
-                    "Seek",
-                    async () =>
-                    {
-                        var result = Utils.ShowInputDialog(
-                            "Seek time",
-                            "Enter seek time with the format : HH:MM:SS",
-                            customColors
-                        );
+        var dbContext = serviceProvider.GetRequiredService<MyDbContext>();
+        dbContext.Database.Migrate();
 
-                        if (result is null)
-                        {
-                            return;
-                        }
+        await using var playerController = serviceProvider.GetRequiredService<PlayerController>();
+        var playerView = serviceProvider.GetRequiredService<PlayerView>();
+        var queueView = serviceProvider.GetRequiredService<QueueView>();
+        var videosResultsView = serviceProvider.GetRequiredService<VideosResultsView>();
+        var recommendationsView = serviceProvider.GetRequiredService<RecommendationsView>();
+        var videoSearchView = serviceProvider.GetRequiredService<VideoSearchView>();
+        var localPlaylistsView = serviceProvider.GetRequiredService<LocalPlaylistsView>();
+        var statusBarFactory = serviceProvider.GetRequiredService<StatusBarFactory>();
 
-                        var isParsed = TimeSpan.TryParseExact(
-                            result,
-                            "g",
-                            CultureInfo.InvariantCulture,
-                            out var time
-                        );
-
-                        if (isParsed)
-                        {
-                            await playerController.SeekAsync(time);
-                        }
-                    }
-                ),
-            ]
-        );
+        videoSearchView.ShowSearch();
+        playerView.ShowPlayer();
+        queueView.ShowQueue();
+        recommendationsView.ShowRecommendations();
+        localPlaylistsView.ShowLocalPlaylists();
+        var statusBar = statusBarFactory.Create();
 
         top.Add(queueWin, searchWin, videosWin, playerWin, statusBar);
-
-        var player = new PlayerView(playerWin, playerController);
-        var queue = new QueueView(queueWin, playerController);
-        var videosResults = new VideosResultsView(
-            resultsTab,
-            tabView,
-            playerController,
-            queue,
-            sharedCancellationTokenSource
-        );
-        var recomendationsView = new RecommendationsView(
-            recommendationsTab.View,
-            playerController,
-            queue,
-            sharedCancellationTokenSource
-        );
-        var videoSearch = new VideoSearchView(searchWin, videosResults, playerController);
-        videoSearch.ShowSearch();
-        player.ShowPlayer();
-        queue.ShowQueue();
-        recomendationsView.ShowRecommendations();
 
         Application.Run(top);
         top.Dispose();

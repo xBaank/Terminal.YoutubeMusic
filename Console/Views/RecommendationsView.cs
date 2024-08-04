@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using Console.Audio;
+using Console.Extensions;
 using Terminal.Gui;
 
 namespace Console.Views;
@@ -17,7 +18,7 @@ internal class RecommendationsView(
             Application.Invoke(() => ShowLoading());
             var recommendations = await playerController.GetRecommendationsAsync();
             Application.Invoke(() => HideLoading());
-            Application.Invoke(() => view.RemoveAll());
+            Application.Invoke(() => View.RemoveAll());
 
             var dataTable = new DataTable();
 
@@ -31,19 +32,12 @@ internal class RecommendationsView(
 
             var tableView = new TableView()
             {
-                X = 0,
-                Y = 0,
-                Width = Dim.Fill(),
-                Height = Dim.Fill(),
                 FullRowSelect = true,
                 Table = new DataTableSource(dataTable)
-            };
-
-            tableView.Style.ShowHorizontalHeaderUnderline = true;
-            tableView.Style.ShowHorizontalBottomline = false;
-            tableView.Style.ShowHorizontalHeaderOverline = false;
-            tableView.Style.ShowVerticalHeaderLines = false;
-            tableView.Style.ShowVerticalCellLines = false;
+            }
+                .WithPos(0)
+                .WithFill()
+                .WithCleanStyle();
 
             tableView.CellActivated += async (_, args) =>
             {
@@ -67,6 +61,6 @@ internal class RecommendationsView(
                 });
             };
 
-            Application.Invoke(() => view.Add(tableView));
+            Application.Invoke(() => View.Add(tableView));
         });
 }

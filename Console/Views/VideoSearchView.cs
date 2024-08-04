@@ -1,16 +1,15 @@
-﻿using System.Threading;
-using Console.Audio;
+﻿using Console.Audio;
 using Terminal.Gui;
 
 namespace Console.Views;
 
-internal class VideoSearchView(Window win, VideosResultsView videosResults, PlayerController player)
+internal class VideoSearchView(View view, VideosResultsView videosResults, PlayerController player)
 {
     private CancellationTokenSource _cancellationTokenSource = new();
 
     public void ShowSearch()
     {
-        win.RemoveAll();
+        view.RemoveAll();
 
         var textField = new TextField
         {
@@ -46,6 +45,6 @@ internal class VideoSearchView(Window win, VideosResultsView videosResults, Play
             });
         };
 
-        win.Add(textField);
+        view.Add(textField);
     }
 }
