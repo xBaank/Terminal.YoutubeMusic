@@ -9,10 +9,9 @@ using Terminal.Gui;
 
 namespace Console.Views;
 
-internal class LocalPlaylistsView
+internal class LocalPlaylistsView : Loader
 {
     private readonly View _view;
-    private readonly QueueView _queueView;
     private readonly TableView _tableView;
     private readonly IServiceProvider _serviceProvider;
     private IReadOnlyCollection<LocalPlaylist> _playlists;
@@ -24,8 +23,11 @@ internal class LocalPlaylistsView
         SharedCancellationTokenSource sharedCancellationTokenSource,
         IServiceProvider serviceProvider
     )
+        : base(view)
     {
         _serviceProvider = serviceProvider;
+        _playlists = [];
+        _view = view;
 
         _tableView = new TableView() { FullRowSelect = true }
             .WithPos(0)
@@ -52,43 +54,42 @@ internal class LocalPlaylistsView
 
                     var songs =
                         (await localPlaylistsRepository.GetPlaylist(item.PlaylistId))
-                            ?.PlaylistSongs?.Select(i => i.Song)
+                            ?.PlaylistSongs?.OrderBy(i => i.Order)
+                            ?.Select(i => i.Song)
                             .WhereNotNull()
                             .ToList() ?? [];
 
                     queueView.ChangeTitle(item.Name);
                     await playerController.SetAsync(songs, sharedCancellationTokenSource.Token);
                     await playerController.PlayAsync();
+
                     Application.Invoke(() => queueView.HideLoading());
                 }
                 catch (TaskCanceledException) { }
             });
         };
-
-        using var scope = _serviceProvider.CreateScope();
-        using var localPlaylistsRepository =
-            scope.ServiceProvider.GetRequiredService<LocalPlaylistsRepository>();
-        _playlists = localPlaylistsRepository.GetPlaylistsAsync().Result.ToList();
-        _view = view;
-        _queueView = queueView;
     }
 
-    public async ValueTask ShowLocalPlaylists()
-    {
-        using var scope = _serviceProvider.CreateScope();
-        var localPlaylistsRepository =
-            scope.ServiceProvider.GetRequiredService<LocalPlaylistsRepository>();
-
-        _view.RemoveAll();
-        var dataTable = new DataTable();
-        dataTable.Columns.Add("Title", typeof(string));
-        dataTable.Columns.Add("Videos", typeof(int));
-        _playlists = await localPlaylistsRepository.GetPlaylistsAsync();
-        foreach (var item in _playlists)
+    public void ShowLocalPlaylists() =>
+        Task.Run(async () =>
         {
-            dataTable.Rows.Add(item, item.PlaylistSongs.Count);
-        }
-        _tableView.Table = new DataTableSource(dataTable);
-        _view.Add(_tableView);
-    }
+            Application.Invoke(() => ShowLoading());
+
+            using var scope = _serviceProvider.CreateScope();
+            using var localPlaylistsRepository =
+                scope.ServiceProvider.GetRequiredService<LocalPlaylistsRepository>();
+
+            var dataTable = new DataTable();
+            dataTable.Columns.Add("Title", typeof(string));
+            dataTable.Columns.Add("Videos", typeof(int));
+            _playlists = await localPlaylistsRepository.GetPlaylistsAsync();
+            foreach (var item in _playlists)
+            {
+                dataTable.Rows.Add(item, item.PlaylistSongs.Count);
+            }
+            _tableView.Table = new DataTableSource(dataTable);
+
+            Application.Invoke(() => HideLoading());
+            Application.Invoke(() => _view.Add(_tableView));
+        });
 }

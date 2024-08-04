@@ -50,7 +50,7 @@ internal class LocalPlaylistsRepository(MyDbContext db) : IDisposable
         {
             Name = name,
             PlaylistSongs = playlistVideos
-                .Select(i => new LocalPlaylistSong { SongId = i.Id })
+                .Select((i, index) => new LocalPlaylistSong { SongId = i.Id, Order = index })
                 .ToList(),
         };
         await db.Playlists.AddAsync(localPlaylist);

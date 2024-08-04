@@ -30,19 +30,25 @@ internal class QueueView(
 
     public async Task SavePlaylist()
     {
-        await using var scope = serviceProvider.CreateAsyncScope();
-        var repo = scope.ServiceProvider.GetRequiredService<LocalPlaylistsRepository>();
-        var localPlaylistsView = scope.ServiceProvider.GetRequiredService<LocalPlaylistsView>();
+        var songs = playerController.Songs.ToList();
+
+        if (songs.Count == 0)
+            return;
+
         var name = Utils.ShowInputDialog(
             "Playlist name",
             "Give the playlist a name",
             View.ColorScheme
         );
+
         if (name is null)
             return;
 
-        await repo.SavePlaylist(name, playerController.Songs);
-        await localPlaylistsView.ShowLocalPlaylists();
+        await using var scope = serviceProvider.CreateAsyncScope();
+        using var repo = scope.ServiceProvider.GetRequiredService<LocalPlaylistsRepository>();
+        var localPlaylistsView = scope.ServiceProvider.GetRequiredService<LocalPlaylistsView>();
+        await repo.SavePlaylist(name, songs);
+        localPlaylistsView.ShowLocalPlaylists();
     }
 
     void UpdateList()

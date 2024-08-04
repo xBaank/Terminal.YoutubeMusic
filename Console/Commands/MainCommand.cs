@@ -206,8 +206,7 @@ internal class MainCommand : ICommand
         playerView.ShowPlayer();
         queueView.ShowQueue();
         recommendationsView.ShowRecommendations();
-        await localPlaylistsView.ShowLocalPlaylists();
-
+        localPlaylistsView.ShowLocalPlaylists();
         var statusBar = statusBarFactory.Create();
 
         top.Add(queueWin, searchWin, videosWin, playerWin, statusBar);

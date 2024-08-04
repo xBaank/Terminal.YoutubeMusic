@@ -7,6 +7,7 @@ internal class LocalPlaylistSong
     public int PlaylistId { get; set; }
     public LocalPlaylist? Playlist { get; set; }
 
+    public int Order { get; set; }
     public string? SongId { get; set; }
     public LocalSong? Song { get; set; }
 }
