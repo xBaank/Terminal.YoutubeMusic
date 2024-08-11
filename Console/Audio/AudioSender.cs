@@ -74,7 +74,7 @@ internal class AudioSender(int sourceId, ALFormat targetFormat) : IAsyncDisposab
             var isNext = _queue.Reader.TryRead(out var next);
             return StreamCallbackResult.Continue;
         }
-
+ asd
         StreamParameters param = new();
         var deviceIndex = PortAudio.DefaultOutputDevice;
         var info = PortAudio.GetDeviceInfo(deviceIndex);
