@@ -1,5 +1,6 @@
 ﻿using System.Threading.Channels;
 using OpenTK.Audio.OpenAL;
+using PortAudioSharp;
 
 namespace Console.Audio;
 
@@ -57,6 +58,42 @@ internal class AudioSender(int sourceId, ALFormat targetFormat) : IAsyncDisposab
 
     public async Task StartSending(CancellationToken token = default)
     {
+        PortAudio.Initialize();
+
+        // Define a callback delegate for audio processing
+        StreamCallbackResult callback(
+            IntPtr input,
+            IntPtr output,
+            UInt32 frameCount,
+            ref StreamCallbackTimeInfo timeInfo,
+            StreamCallbackFlags statusFlags,
+            IntPtr userData
+        )
+        {
+            //TODO
+            var isNext = _queue.Reader.TryRead(out var next);
+            return StreamCallbackResult.Continue;
+        }
+
+        StreamParameters param = new();
+        var deviceIndex = PortAudio.DefaultOutputDevice;
+        var info = PortAudio.GetDeviceInfo(deviceIndex);
+        param.device = PortAudio.DefaultOutputDevice;
+        param.channelCount = Channels;
+        param.sampleFormat = SampleFormat.Float32;
+        param.suggestedLatency = info.defaultLowOutputLatency;
+        param.hostApiSpecificStreamInfo = IntPtr.Zero;
+
+        var str = new PortAudioSharp.Stream(
+            inParams: null,
+            outParams: param,
+            streamFlags: StreamFlags.ClipOff,
+            sampleRate: SampleRate,
+            framesPerBuffer: 256,
+            callback: callback,
+            userData: IntPtr.Zero
+        );
+
         var fillBuffers = await _queue
             .Reader.ReadAllAsync(token)
             .Take(10)
