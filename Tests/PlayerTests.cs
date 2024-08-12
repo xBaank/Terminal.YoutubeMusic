@@ -30,7 +30,7 @@ public class PlayerTests : IAsyncDisposable
         await _player.PlayAsync();
 
         await finishTask.Task;
-        _player.State.Should().Be(ALSourceState.Stopped);
+        _player.State.Should().Be(PlayState.Stopped);
         _player.Song.Should().Be(video);
     }
 
@@ -47,7 +47,7 @@ public class PlayerTests : IAsyncDisposable
         await _player.PlayAsync();
         await _player.SkipAsync();
 
-        _player.State.Should().Be(ALSourceState.Initial);
+        _player.State.Should().Be(PlayState.Stopped);
         _player.Song.Should().Be(null);
     }
 
@@ -63,7 +63,7 @@ public class PlayerTests : IAsyncDisposable
         await Task.Delay(5000);
         await _player.PauseAsync();
 
-        _player.State.Should().Be(ALSourceState.Paused);
+        _player.State.Should().Be(PlayState.Paused);
         _player.Song.Should().Be(video);
     }
 
@@ -79,7 +79,7 @@ public class PlayerTests : IAsyncDisposable
         await Task.Delay(5000);
         await _player.StopAsync();
 
-        _player.State.Should().Be(ALSourceState.Stopped);
+        _player.State.Should().Be(PlayState.Stopped);
         _player.Song.Should().Be(video);
     }
 
@@ -103,7 +103,7 @@ public class PlayerTests : IAsyncDisposable
         await _player.PlayAsync();
         await finishTask.Task;
 
-        _player.State.Should().Be(ALSourceState.Stopped);
+        _player.State.Should().Be(PlayState.Stopped);
         _player.Song.Should().Be(video2);
     }
 

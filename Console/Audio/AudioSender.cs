@@ -4,13 +4,6 @@ using PortAudioSharp;
 
 namespace Console.Audio;
 
-internal enum PlayState
-{
-    Playing,
-    Paused,
-    Stopped
-}
-
 internal class AudioSender : IAsyncDisposable
 {
     private readonly Channel<PcmPacket<short>> _queue = Channel.CreateBounded<PcmPacket<short>>(

@@ -8,7 +8,7 @@ using YoutubeExplode.Videos;
 
 namespace Console.Audio;
 
-internal class PlayerController : IAsyncDisposable
+public class PlayerController : IAsyncDisposable
 {
     private readonly AsyncLock _lock = new();
 
