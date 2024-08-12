@@ -1,62 +1,38 @@
-﻿using System.Threading.Channels;
-using OpenTK.Audio.OpenAL;
+﻿using System.Runtime.InteropServices;
+using System.Threading.Channels;
 using PortAudioSharp;
 
 namespace Console.Audio;
 
-internal class AudioSender(int sourceId, ALFormat targetFormat) : IAsyncDisposable
+internal enum PlayState
 {
-    private readonly Channel<PcmPacket> _queue = Channel.CreateBounded<PcmPacket>(150);
+    Playing,
+    Paused,
+    Stopped
+}
+
+internal class AudioSender : IAsyncDisposable
+{
+    private readonly Channel<PcmPacket<short>> _queue = Channel.CreateBounded<PcmPacket<short>>(
+        150
+    );
     public readonly int SampleRate = 48000;
     public readonly int Channels = 2;
-    private readonly int[] _buffers = AL.GenBuffers(50);
-    private bool _clearBuffer = false;
+    public PlayState State { get; set; } = PlayState.Stopped;
+    private PortAudioSharp.Stream? _stream;
+    private float _volume = 1.0f; // Default volume
 
     public void ClearBuffer()
     {
-        _clearBuffer = true;
         while (_queue.Reader.TryRead(out var next))
         {
             next.Dispose();
         }
     }
 
-    public async ValueTask Add(PcmPacket data) => await _queue.Writer.WriteAsync(data);
+    public async ValueTask Add(PcmPacket<short> data) => await _queue.Writer.WriteAsync(data);
 
-    private async ValueTask ClearBufferAL(CancellationToken token)
-    {
-        AL.GetSource(sourceId, ALGetSourcei.SourceState, out int initialState);
-
-        AL.SourceStop(sourceId);
-        AL.GetSource(sourceId, ALGetSourcei.BuffersQueued, out int queuedCount);
-
-        if (queuedCount > 0)
-        {
-            int[] bufferIds = new int[queuedCount];
-            AL.SourceUnqueueBuffers(sourceId, queuedCount, bufferIds);
-            foreach (var buffer in bufferIds)
-            {
-                using var next = await _queue.Reader.ReadAsync(token);
-                AL.BufferData(buffer, targetFormat, next.Data, SampleRate);
-                AL.SourceQueueBuffer(sourceId, buffer);
-            }
-        }
-
-        _clearBuffer = false;
-
-        if ((ALSourceState)initialState == ALSourceState.Playing)
-        {
-            AL.SourcePlay(sourceId);
-        }
-
-        if ((ALSourceState)initialState == ALSourceState.Paused)
-        {
-            AL.SourcePlay(sourceId);
-            AL.SourcePause(sourceId);
-        }
-    }
-
-    public async Task StartSending(CancellationToken token = default)
+    public unsafe void StartSending(CancellationToken token = default)
     {
         PortAudio.Initialize();
 
@@ -70,102 +46,67 @@ internal class AudioSender(int sourceId, ALFormat targetFormat) : IAsyncDisposab
             IntPtr userData
         )
         {
-            //TODO
-            var isNext = _queue.Reader.TryRead(out var next);
+            if (token.IsCancellationRequested)
+                return StreamCallbackResult.Abort;
+
+            if (State == PlayState.Paused)
+            {
+                var spanUnmanagedBuffer = new Span<short>(
+                    output.ToPointer(),
+                    (int)(frameCount * 2)
+                );
+                spanUnmanagedBuffer.Clear();
+                return StreamCallbackResult.Continue;
+            }
+
+            if (State == PlayState.Stopped)
+                return StreamCallbackResult.Abort;
+            else if (_queue.Reader.TryRead(out var nextBuffer))
+            {
+                using var buffer = nextBuffer;
+                var sizeInBytes = (int)frameCount * 2;
+                var spanUnmanagedBuffer = new Span<short>(output.ToPointer(), sizeInBytes);
+                buffer.Data[..sizeInBytes].CopyTo(spanUnmanagedBuffer);
+            }
+            else
+            {
+                var spanUnmanagedBuffer = new Span<short>(
+                    output.ToPointer(),
+                    (int)(frameCount * 2)
+                );
+                spanUnmanagedBuffer.Clear();
+            }
+
             return StreamCallbackResult.Continue;
         }
- asd
+
         StreamParameters param = new();
         var deviceIndex = PortAudio.DefaultOutputDevice;
         var info = PortAudio.GetDeviceInfo(deviceIndex);
         param.device = PortAudio.DefaultOutputDevice;
         param.channelCount = Channels;
-        param.sampleFormat = SampleFormat.Float32;
+        param.sampleFormat = SampleFormat.Int16;
         param.suggestedLatency = info.defaultLowOutputLatency;
         param.hostApiSpecificStreamInfo = IntPtr.Zero;
 
-        var str = new PortAudioSharp.Stream(
+        _stream = new PortAudioSharp.Stream(
             inParams: null,
             outParams: param,
             streamFlags: StreamFlags.ClipOff,
             sampleRate: SampleRate,
-            framesPerBuffer: 256,
+            framesPerBuffer: 960, //TODO This should not be hardcoded maybe?
             callback: callback,
             userData: IntPtr.Zero
         );
 
-        var fillBuffers = await _queue
-            .Reader.ReadAllAsync(token)
-            .Take(10)
-            .ToListAsync(cancellationToken: token);
-
-        for (int i = 0; i < fillBuffers.Count; i++)
-        {
-            using var item = fillBuffers[i];
-            AL.BufferData(_buffers[i], targetFormat, item.Data, SampleRate);
-            AL.SourceQueueBuffer(sourceId, _buffers[i]);
-        }
-
-        var _ = Task.Run(
-            async () =>
-            {
-                try
-                {
-                    while (!token.IsCancellationRequested)
-                    {
-                        if (_clearBuffer)
-                        {
-                            await ClearBufferAL(token);
-                            continue;
-                        }
-
-                        AL.GetSource(
-                            sourceId,
-                            ALGetSourcei.BuffersProcessed,
-                            out int releasedCount
-                        );
-
-                        if (releasedCount > 0)
-                        {
-                            int[] bufferIds = new int[releasedCount];
-                            AL.SourceUnqueueBuffers(sourceId, releasedCount, bufferIds);
-                            foreach (var buffer in bufferIds)
-                            {
-                                using var next = await _queue.Reader.ReadAsync(token);
-                                AL.BufferData(buffer, targetFormat, next.Data, SampleRate);
-                                AL.SourceQueueBuffer(sourceId, buffer);
-                            }
-                        }
-
-                        AL.GetSource(sourceId, ALGetSourcei.SourceState, out int stateInt);
-
-                        if ((ALSourceState)stateInt == ALSourceState.Stopped)
-                        {
-                            AL.SourcePlay(sourceId);
-                        }
-
-                        await Task.Delay(100);
-                    }
-                }
-                finally
-                {
-                    await ClearBufferAL(token);
-                }
-            },
-            token
-        );
-
-        AL.SourcePlay(sourceId);
+        _stream.Start();
     }
 
     public ValueTask DisposeAsync()
     {
         ClearBuffer();
-        AL.SourceStop(sourceId);
-        AL.GetSource(sourceId, ALGetSourcei.BuffersProcessed, out int releasedCount);
-        int[] bufferIds = new int[releasedCount];
-        AL.SourceUnqueueBuffers(sourceId, releasedCount, bufferIds);
-        AL.DeleteBuffers(bufferIds);
+        State = PlayState.Stopped;
+        _stream?.Dispose();
         return ValueTask.CompletedTask;
     }
 }

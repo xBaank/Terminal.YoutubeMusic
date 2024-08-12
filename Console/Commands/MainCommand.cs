@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using CliFx;
+﻿using CliFx;
 using CliFx.Attributes;
 using CliFx.Infrastructure;
 using Console.Audio;

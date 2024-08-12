@@ -154,15 +154,6 @@ internal class Matroska : IDisposable, IAsyncDisposable
         }
     }
 
-    private static void ShortsToBytes(ReadOnlySpan<short> input, Span<byte> output)
-    {
-        for (int i = 0; i < input.Length; i++)
-        {
-            output[i * 2] = (byte)input[i];
-            output[i * 2 + 1] = (byte)(input[i] >> 8);
-        }
-    }
-
     private async ValueTask AddOpusPacket(ReadOnlyMemory<byte> data)
     {
         var frames = OpusPacketInfo.GetNumFrames(data.Span);
@@ -171,18 +162,11 @@ internal class Matroska : IDisposable, IAsyncDisposable
         var pcmSize = frameSize * _sender.Channels;
 
         var pcm = ArrayPool<short>.Shared.Rent(pcmSize);
-        var pcmBytes = ArrayPool<byte>.Shared.Rent(pcmSize * 2);
 
         try
         {
             _decoder.Decode(data.Span, pcm.AsSpan()[..pcmSize], frameSize);
-            ShortsToBytes(pcm.AsSpan()[..pcmSize], pcmBytes.AsSpan()[..(pcmSize * 2)]);
-            await _sender.Add(new PcmPacket(pcmBytes, pcmSize * 2));
-        }
-        catch
-        {
-            ArrayPool<byte>.Shared.Return(pcmBytes);
-            throw;
+            await _sender.Add(new PcmPacket<short>(pcm, pcmSize));
         }
         finally
         {

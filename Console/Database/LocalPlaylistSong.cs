@@ -1,6 +1,4 @@
-﻿using YoutubeExplode.Videos;
-
-namespace Console.Database;
+﻿namespace Console.Database;
 
 internal class LocalPlaylistSong
 {

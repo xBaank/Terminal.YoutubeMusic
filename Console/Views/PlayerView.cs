@@ -156,10 +156,7 @@ internal class PlayerView(Window win, PlayerController player)
 
         playPauseButton.Accept += async (_, args) =>
         {
-            if (player.State is null)
-                return;
-
-            if (player.State == ALSourceState.Playing)
+            if (player.State == PlayState.Playing)
             {
                 playPauseButton.Text = "play";
 
