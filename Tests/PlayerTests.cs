@@ -101,7 +101,8 @@ public class PlayerTests : IAsyncDisposable
         await Task.Delay(5000);
         await _player.SetAsync(video2);
         await _player.PlayAsync();
-        await finishTask.Task;
+        if (!finishTask.Task.IsCompleted)
+            await finishTask.Task;
 
         _player.State.Should().Be(PlayState.Stopped);
         _player.Song.Should().Be(video2);
