@@ -85,7 +85,7 @@ internal class AudioSender(float volume, PlayState initialState) : IAsyncDisposa
         param.device = PortAudio.DefaultOutputDevice;
         param.channelCount = Channels;
         param.sampleFormat = SampleFormat.Int16;
-        param.suggestedLatency = info.defaultLowOutputLatency;
+        param.suggestedLatency = info.defaultHighOutputLatency;
         param.hostApiSpecificStreamInfo = IntPtr.Zero;
 
         _stream = new PortAudioSharp.Stream(
