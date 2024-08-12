@@ -2,7 +2,6 @@ using Console.Audio.Containers.Matroska;
 using Console.Audio.DownloadHandlers;
 using Nito.AsyncEx;
 using Nito.Disposables.Internals;
-using OpenTK.Audio.OpenAL;
 using YoutubeExplode;
 using YoutubeExplode.Search;
 using YoutubeExplode.Videos;
@@ -12,17 +11,11 @@ namespace Console.Audio;
 public class PlayerController : IAsyncDisposable
 {
     private readonly AsyncLock _lock = new();
-
+    private readonly YoutubeClient _youtubeClient;
     private float _volume = 0.5f;
-
+    private PlayState _state = PlayState.Stopped;
     private List<IVideo> _queue = [];
     private int _currentSongIndex = 0;
-
-    private readonly ALDevice _device;
-    private readonly ALContext _context;
-    private readonly int _sourceId;
-    private readonly ALFormat _targetFormat;
-    private readonly YoutubeClient _youtubeClient;
     private Matroska? _matroskaPlayerBuffer = null;
     private AudioSender? _audioSender = null;
     private CancellationTokenSource _currentSongTokenSource = new();
@@ -32,6 +25,16 @@ public class PlayerController : IAsyncDisposable
     public event Action<IEnumerable<IVideo>>? QueueChanged; //Maybe emit state to show a loading spinner
     public event Action? OnFinish;
 
+    public PlayState State
+    {
+        get { return _state; }
+        set
+        {
+            _state = value;
+            if (_audioSender is not null)
+                _audioSender.State = (PlayState)value;
+        }
+    }
     public int Volume
     {
         get { return (int)(_volume * 100); }
@@ -41,13 +44,13 @@ public class PlayerController : IAsyncDisposable
                 return;
 
             _volume = value / 100f;
-            AL.Source(_sourceId, ALSourcef.Gain, _volume);
+
+            if (_audioSender is not null)
+                _audioSender.Volume = _volume;
         }
     }
-
-    public TimeSpan? Time => _matroskaPlayerBuffer?.CurrentTime;
+    public TimeSpan? Time => _audioSender?.CurrentTime;
     public TimeSpan? TotalTime => _matroskaPlayerBuffer?.TotalTime ?? Song?.Duration;
-    public ALSourceState? State => SourceState();
     public IVideo? Song => _queue.ElementAtOrDefault(_currentSongIndex);
     public IReadOnlyCollection<IVideo> Songs => _queue;
     public LoopState LoopState { get; set; }
@@ -55,20 +58,6 @@ public class PlayerController : IAsyncDisposable
     public PlayerController(YoutubeClient youtubeClient)
     {
         _youtubeClient = youtubeClient;
-        _device = ALC.OpenDevice(Environment.GetEnvironmentVariable("DeviceName"));
-        _context = ALC.CreateContext(_device, new ALContextAttributes());
-        ALC.MakeContextCurrent(_context);
-
-        var error = ALC.GetError(_device);
-        // Check for any errors
-        if (error != AlcError.NoError)
-        {
-            throw new Exception($"Error code: {error}");
-        }
-
-        _sourceId = AL.GenSource();
-        _targetFormat = ALFormat.Stereo16;
-        AL.Source(_sourceId, ALSourcef.Gain, _volume);
     }
 
     public async ValueTask DisposeAsync()
@@ -81,9 +70,6 @@ public class PlayerController : IAsyncDisposable
         _disposed = true;
 
         await StopAsync().ConfigureAwait(false);
-        ALC.DestroyContext(_context);
-        ALC.CloseDevice(_device);
-        AL.DeleteSource(_sourceId);
 
         if (_matroskaPlayerBuffer is not null)
         {
@@ -121,7 +107,7 @@ public class PlayerController : IAsyncDisposable
 
     private void ResetState()
     {
-        AL.SourceStop(_sourceId);
+        State = PlayState.Stopped;
         _audioSender?.ClearBuffer();
         _currentSongTokenSource.Cancel();
     }
@@ -204,12 +190,6 @@ public class PlayerController : IAsyncDisposable
         QueueChanged?.Invoke(_queue);
     }
 
-    private ALSourceState SourceState()
-    {
-        AL.GetSource(_sourceId, ALGetSourcei.SourceState, out int stateInt);
-        return (ALSourceState)stateInt;
-    }
-
     public async Task PlayAsync()
     {
         using var _l = await _lock.LockAsync();
@@ -217,15 +197,15 @@ public class PlayerController : IAsyncDisposable
         if (Song is null)
             return;
 
-        if (SourceState() == ALSourceState.Playing)
+        if (State == PlayState.Playing)
         {
             return;
         }
 
-        if (SourceState() == ALSourceState.Paused)
+        if (State == PlayState.Paused)
         {
             StateChanged?.Invoke();
-            AL.SourcePlay(_sourceId);
+            State = PlayState.Playing;
             return;
         }
 
@@ -236,8 +216,8 @@ public class PlayerController : IAsyncDisposable
             await _matroskaPlayerBuffer.DisposeAsync();
 
         _currentSongTokenSource = new CancellationTokenSource();
-
-        _audioSender = new AudioSender(_sourceId, _targetFormat);
+        _audioSender = new AudioSender(_volume, _state);
+        State = PlayState.Playing;
 
         try
         {
@@ -249,8 +229,11 @@ public class PlayerController : IAsyncDisposable
 
             _matroskaPlayerBuffer.OnFinish += async () =>
             {
+                _audioSender.WaitForEmptyBuffer = new();
+                await _audioSender.WaitForEmptyBuffer.Task;
                 _currentSongTokenSource.Cancel();
                 await _audioSender.DisposeAsync();
+                State = PlayState.Stopped;
                 OnFinish?.Invoke();
             };
 
@@ -266,6 +249,7 @@ public class PlayerController : IAsyncDisposable
             //This could happen if the video is too old and there is no opus support
             _currentSongTokenSource.Cancel();
             await _audioSender.DisposeAsync();
+            State = PlayState.Stopped;
             OnFinish?.Invoke();
         }
     }
@@ -286,7 +270,7 @@ public class PlayerController : IAsyncDisposable
                 _currentSongIndex = 0;
 
             _audioSender?.ClearBuffer();
-            AL.SourceStop(_sourceId);
+            State = PlayState.Stopped;
         }
     }
 
@@ -298,7 +282,8 @@ public class PlayerController : IAsyncDisposable
         {
             if (_currentSongIndex > 0)
                 _currentSongIndex--;
-            AL.SourceStop(_sourceId);
+            State = PlayState.Stopped;
+
             _audioSender?.ClearBuffer();
         }
     }
@@ -306,12 +291,12 @@ public class PlayerController : IAsyncDisposable
     public async Task PauseAsync()
     {
         using var _ = await _lock.LockAsync();
-        AL.SourcePause(_sourceId);
+        State = PlayState.Paused;
     }
 
     public async Task StopAsync()
     {
         using var _ = await _lock.LockAsync();
-        AL.SourceStop(_sourceId);
+        State = PlayState.Stopped;
     }
 }

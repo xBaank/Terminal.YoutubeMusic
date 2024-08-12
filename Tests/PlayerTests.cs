@@ -1,7 +1,6 @@
 using Console;
 using Console.Audio;
 using FluentAssertions;
-using OpenTK.Audio.OpenAL;
 using YoutubeExplode;
 
 namespace Tests;
@@ -30,7 +29,7 @@ public class PlayerTests : IAsyncDisposable
         await _player.PlayAsync();
 
         await finishTask.Task;
-        _player.State.Should().Be(ALSourceState.Stopped);
+        _player.State.Should().Be(PlayState.Stopped);
         _player.Song.Should().Be(video);
     }
 
@@ -47,7 +46,7 @@ public class PlayerTests : IAsyncDisposable
         await _player.PlayAsync();
         await _player.SkipAsync();
 
-        _player.State.Should().Be(ALSourceState.Initial);
+        _player.State.Should().Be(PlayState.Stopped);
         _player.Song.Should().Be(null);
     }
 
@@ -63,7 +62,7 @@ public class PlayerTests : IAsyncDisposable
         await Task.Delay(5000);
         await _player.PauseAsync();
 
-        _player.State.Should().Be(ALSourceState.Paused);
+        _player.State.Should().Be(PlayState.Paused);
         _player.Song.Should().Be(video);
     }
 
@@ -79,7 +78,7 @@ public class PlayerTests : IAsyncDisposable
         await Task.Delay(5000);
         await _player.StopAsync();
 
-        _player.State.Should().Be(ALSourceState.Stopped);
+        _player.State.Should().Be(PlayState.Stopped);
         _player.Song.Should().Be(video);
     }
 
@@ -87,7 +86,10 @@ public class PlayerTests : IAsyncDisposable
     public async Task I_can_set_another_song_while_playing()
     {
         var finishTask = new TaskCompletionSource();
-        _player.OnFinish += finishTask.SetResult;
+        _player.OnFinish += () =>
+        {
+            finishTask.TrySetResult();
+        };
 
         var video = (
             await _player.SearchAsync("https://www.youtube.com/watch?v=ZKzmyGKWFjU")
@@ -98,12 +100,11 @@ public class PlayerTests : IAsyncDisposable
 
         await _player.SetAsync(video);
         await _player.PlayAsync();
-        await Task.Delay(5000);
         await _player.SetAsync(video2);
         await _player.PlayAsync();
         await finishTask.Task;
 
-        _player.State.Should().Be(ALSourceState.Stopped);
+        _player.State.Should().Be(PlayState.Stopped);
         _player.Song.Should().Be(video2);
     }
 

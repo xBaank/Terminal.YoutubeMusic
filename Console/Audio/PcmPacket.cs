@@ -2,11 +2,13 @@
 
 namespace Console.Audio;
 
-internal struct PcmPacket(byte[] Data, int Lenght) : IDisposable
+internal readonly struct PcmPacket<T>(T[] Data, int Lenght, TimeSpan Time) : IDisposable
+    where T : struct
 {
-    private readonly byte[] _data = Data;
-    public readonly ReadOnlySpan<byte> Data => _data.AsSpan()[..Lenght];
+    private readonly T[] _data = Data;
+    public readonly Span<T> Data => _data.AsSpan()[..Lenght];
     public int Lenght { get; } = Lenght;
+    public TimeSpan Time { get; } = Time;
 
-    public readonly void Dispose() => ArrayPool<byte>.Shared.Return(_data);
+    public readonly void Dispose() => ArrayPool<T>.Shared.Return(_data);
 }

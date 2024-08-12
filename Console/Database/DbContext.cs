@@ -1,6 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using YoutubeExplode.Playlists;
-using static Terminal.Gui.SpinnerStyle;
 
 namespace Console.Database;
 

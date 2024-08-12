@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using CliFx;
+﻿using CliFx;
 using CliFx.Attributes;
 using CliFx.Infrastructure;
 using Console.Audio;
@@ -69,7 +68,7 @@ internal class MainCommand : ICommand
             X = Pos.Right(queueWin),
             Y = Pos.Bottom(searchWin),
             Width = Dim.Fill(),
-            Height = Dim.Fill() - 8,
+            Height = Dim.Fill()! - 8,
             ColorScheme = customColors
         };
 

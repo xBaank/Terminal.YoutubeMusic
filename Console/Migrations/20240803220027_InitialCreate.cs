@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -15,7 +14,8 @@ namespace Console.Migrations
                 name: "Playlists",
                 columns: table => new
                 {
-                    PlaylistId = table.Column<int>(type: "INTEGER", nullable: false)
+                    PlaylistId = table
+                        .Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     Name = table.Column<string>(type: "TEXT", nullable: false),
                     Description = table.Column<string>(type: "TEXT", nullable: false)
@@ -23,7 +23,8 @@ namespace Console.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Playlists", x => x.PlaylistId);
-                });
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "Songs",
@@ -39,7 +40,8 @@ namespace Console.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Songs", x => x.Id);
-                });
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "PlaylistSongs",
@@ -56,32 +58,33 @@ namespace Console.Migrations
                         column: x => x.PlaylistId,
                         principalTable: "Playlists",
                         principalColumn: "PlaylistId",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Cascade
+                    );
                     table.ForeignKey(
                         name: "FK_PlaylistSongs_Songs_SongId",
                         column: x => x.SongId,
                         principalTable: "Songs",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_PlaylistSongs_SongId",
                 table: "PlaylistSongs",
-                column: "SongId");
+                column: "SongId"
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "PlaylistSongs");
+            migrationBuilder.DropTable(name: "PlaylistSongs");
 
-            migrationBuilder.DropTable(
-                name: "Playlists");
+            migrationBuilder.DropTable(name: "Playlists");
 
-            migrationBuilder.DropTable(
-                name: "Songs");
+            migrationBuilder.DropTable(name: "Songs");
         }
     }
 }
