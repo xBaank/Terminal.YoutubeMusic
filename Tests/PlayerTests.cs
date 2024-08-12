@@ -1,7 +1,6 @@
 using Console;
 using Console.Audio;
 using FluentAssertions;
-using OpenTK.Audio.OpenAL;
 using YoutubeExplode;
 
 namespace Tests;

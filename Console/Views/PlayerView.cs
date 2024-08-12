@@ -1,6 +1,5 @@
 using Console.Audio;
 using Console.Extensions;
-using OpenTK.Audio.OpenAL;
 using Terminal.Gui;
 
 namespace Console.Views;

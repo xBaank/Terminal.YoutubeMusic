@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using System.Threading.Channels;
+﻿using System.Threading.Channels;
 using PortAudioSharp;
 
 namespace Console.Audio;

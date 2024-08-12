@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using OpenTK.Audio.OpenAL;
-using PortAudioSharp;
+﻿using PortAudioSharp;
 using Terminal.Gui;
 
 namespace Console;
@@ -12,18 +10,6 @@ public static class Utils
     public static void ConfigurePlatformDependencies()
     {
         PortAudio.LoadNativeLibrary();
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            OpenALLibraryNameContainer.OverridePath = "libopenal.so";
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            OpenALLibraryNameContainer.OverridePath = "libopenal.dylib";
-        }
-        else
-        {
-            OpenALLibraryNameContainer.OverridePath = "soft_oal.dll";
-        }
     }
 
     public static string? ShowInputDialog(string title, string prompt, ColorScheme colorScheme)
