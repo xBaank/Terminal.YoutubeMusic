@@ -4,16 +4,18 @@ using PortAudioSharp;
 
 namespace Console.Audio;
 
-internal class AudioSender : IAsyncDisposable
+internal class AudioSender(float volume, PlayState initialState) : IAsyncDisposable
 {
     private readonly Channel<PcmPacket<short>> _queue = Channel.CreateBounded<PcmPacket<short>>(
-        150
+        500
     );
     public readonly int SampleRate = 48000;
     public readonly int Channels = 2;
-    public PlayState State { get; set; } = PlayState.Stopped;
+    public PlayState State { get; set; } = initialState;
+    public float Volume { get; set; } = volume;
+    public TimeSpan CurrentTime { get; private set; } = default;
+    public TaskCompletionSource WaitForEmptyBuffer { get; set; } = new();
     private PortAudioSharp.Stream? _stream;
-    private float _volume = 1.0f; // Default volume
 
     public void ClearBuffer()
     {
@@ -39,38 +41,43 @@ internal class AudioSender : IAsyncDisposable
             IntPtr userData
         )
         {
+            var sizeInBytes = (int)frameCount * 2;
+
             if (token.IsCancellationRequested)
                 return StreamCallbackResult.Abort;
 
             if (State == PlayState.Paused)
             {
-                var spanUnmanagedBuffer = new Span<short>(
-                    output.ToPointer(),
-                    (int)(frameCount * 2)
-                );
+                var spanUnmanagedBuffer = new Span<short>(output.ToPointer(), sizeInBytes);
                 spanUnmanagedBuffer.Clear();
                 return StreamCallbackResult.Continue;
             }
 
             if (State == PlayState.Stopped)
                 return StreamCallbackResult.Abort;
-            else if (_queue.Reader.TryRead(out var nextBuffer))
+
+            if (_queue.Reader.TryRead(out var nextBuffer))
             {
                 using var buffer = nextBuffer;
-                var sizeInBytes = (int)frameCount * 2;
                 var spanUnmanagedBuffer = new Span<short>(output.ToPointer(), sizeInBytes);
-                buffer.Data[..sizeInBytes].CopyTo(spanUnmanagedBuffer);
+                var source = buffer.Data[..sizeInBytes];
+
+                for (var i = 0; i < source.Length; i++)
+                {
+                    source[i] = (short)(source[i] * Volume);
+                }
+
+                source.CopyTo(spanUnmanagedBuffer);
+                CurrentTime = buffer.Time;
+                return StreamCallbackResult.Continue;
             }
             else
             {
-                var spanUnmanagedBuffer = new Span<short>(
-                    output.ToPointer(),
-                    (int)(frameCount * 2)
-                );
+                WaitForEmptyBuffer.TrySetResult();
+                var spanUnmanagedBuffer = new Span<short>(output.ToPointer(), sizeInBytes);
                 spanUnmanagedBuffer.Clear();
+                return StreamCallbackResult.Continue;
             }
-
-            return StreamCallbackResult.Continue;
         }
 
         StreamParameters param = new();
@@ -99,7 +106,12 @@ internal class AudioSender : IAsyncDisposable
     {
         ClearBuffer();
         State = PlayState.Stopped;
-        _stream?.Dispose();
+        try
+        {
+            _stream?.Stop();
+            _stream?.Dispose();
+        }
+        catch { }
         return ValueTask.CompletedTask;
     }
 }

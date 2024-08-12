@@ -11,13 +11,11 @@ namespace Console.Audio;
 public class PlayerController : IAsyncDisposable
 {
     private readonly AsyncLock _lock = new();
-
+    private readonly YoutubeClient _youtubeClient;
     private float _volume = 0.5f;
-
+    private PlayState _state = PlayState.Stopped;
     private List<IVideo> _queue = [];
     private int _currentSongIndex = 0;
-
-    private readonly YoutubeClient _youtubeClient;
     private Matroska? _matroskaPlayerBuffer = null;
     private AudioSender? _audioSender = null;
     private CancellationTokenSource _currentSongTokenSource = new();
@@ -27,6 +25,16 @@ public class PlayerController : IAsyncDisposable
     public event Action<IEnumerable<IVideo>>? QueueChanged; //Maybe emit state to show a loading spinner
     public event Action? OnFinish;
 
+    public PlayState State
+    {
+        get { return _state; }
+        set
+        {
+            _state = value;
+            if (_audioSender is not null)
+                _audioSender.State = (PlayState)value;
+        }
+    }
     public int Volume
     {
         get { return (int)(_volume * 100); }
@@ -36,21 +44,13 @@ public class PlayerController : IAsyncDisposable
                 return;
 
             _volume = value / 100f;
-        }
-    }
 
-    public TimeSpan? Time => _matroskaPlayerBuffer?.CurrentTime;
-    public TimeSpan? TotalTime => _matroskaPlayerBuffer?.TotalTime ?? Song?.Duration;
-    public PlayState State
-    {
-        get { return _audioSender?.State ?? PlayState.Stopped; }
-        set
-        {
             if (_audioSender is not null)
-                _audioSender.State = (PlayState)value;
+                _audioSender.Volume = _volume;
         }
     }
-
+    public TimeSpan? Time => _audioSender?.CurrentTime;
+    public TimeSpan? TotalTime => _matroskaPlayerBuffer?.TotalTime ?? Song?.Duration;
     public IVideo? Song => _queue.ElementAtOrDefault(_currentSongIndex);
     public IReadOnlyCollection<IVideo> Songs => _queue;
     public LoopState LoopState { get; set; }
@@ -216,7 +216,7 @@ public class PlayerController : IAsyncDisposable
             await _matroskaPlayerBuffer.DisposeAsync();
 
         _currentSongTokenSource = new CancellationTokenSource();
-        _audioSender = new AudioSender();
+        _audioSender = new AudioSender(_volume, _state);
         State = PlayState.Playing;
 
         try
@@ -229,6 +229,8 @@ public class PlayerController : IAsyncDisposable
 
             _matroskaPlayerBuffer.OnFinish += async () =>
             {
+                _audioSender.WaitForEmptyBuffer = new();
+                await _audioSender.WaitForEmptyBuffer.Task;
                 _currentSongTokenSource.Cancel();
                 await _audioSender.DisposeAsync();
                 OnFinish?.Invoke();

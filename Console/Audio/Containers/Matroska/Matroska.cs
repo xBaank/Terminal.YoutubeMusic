@@ -43,7 +43,6 @@ internal class Matroska : IDisposable, IAsyncDisposable
         _ebmlReader.Dispose();
         _inputStream.Dispose();
         _memoryOwner.Dispose();
-        CurrentTime = default;
         TotalTime = default;
     }
 
@@ -52,11 +51,9 @@ internal class Matroska : IDisposable, IAsyncDisposable
         await _ebmlReader.DisposeAsync();
         await _inputStream.DisposeAsync();
         _memoryOwner.Dispose();
-        CurrentTime = default;
         TotalTime = default;
     }
 
-    public TimeSpan CurrentTime { get; private set; } = TimeSpan.Zero;
     public TimeSpan TotalTime { get; private set; }
 
     public async Task AddFrames(CancellationToken cancellationToken)
@@ -154,7 +151,7 @@ internal class Matroska : IDisposable, IAsyncDisposable
         }
     }
 
-    private async ValueTask AddOpusPacket(ReadOnlyMemory<byte> data)
+    private async ValueTask AddOpusPacket(ReadOnlyMemory<byte> data, TimeSpan time)
     {
         var frames = OpusPacketInfo.GetNumFrames(data.Span);
         var samplePerFrame = OpusPacketInfo.GetNumSamplesPerFrame(data.Span, _sender.SampleRate);
@@ -162,16 +159,8 @@ internal class Matroska : IDisposable, IAsyncDisposable
         var pcmSize = frameSize * _sender.Channels;
 
         var pcm = ArrayPool<short>.Shared.Rent(pcmSize);
-
-        try
-        {
-            _decoder.Decode(data.Span, pcm.AsSpan()[..pcmSize], frameSize);
-            await _sender.Add(new PcmPacket<short>(pcm, pcmSize));
-        }
-        finally
-        {
-            ArrayPool<short>.Shared.Return(pcm);
-        }
+        _decoder.Decode(data.Span, pcm.AsSpan()[..pcmSize], frameSize);
+        await _sender.Add(new PcmPacket<short>(pcm, pcmSize, time));
     }
 
     private async ValueTask WriteBlock(
@@ -193,13 +182,13 @@ internal class Matroska : IDisposable, IAsyncDisposable
             var memory = _memoryOwner.Memory[..size];
 
             var block = await _ebmlReader.GetSimpleBlock(memory, cancellationToken);
-            CurrentTime = time + TimeSpan.FromMilliseconds(block.Timestamp);
+            var currentTime = time + TimeSpan.FromMilliseconds(block.Timestamp);
 
-            if (CurrentTime.TotalMilliseconds < _seekTime)
+            if (currentTime.TotalMilliseconds < _seekTime)
                 return;
 
             foreach (var frame in block.GetFrames())
-                await AddOpusPacket(frame);
+                await AddOpusPacket(frame, currentTime);
 
             return;
         }
