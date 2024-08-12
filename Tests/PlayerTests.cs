@@ -101,7 +101,6 @@ public class PlayerTests : IAsyncDisposable
 
         await _player.SetAsync(video);
         await _player.PlayAsync();
-        await Task.Delay(5000);
         await _player.SetAsync(video2);
         await _player.PlayAsync();
         await finishTask.Task;
