@@ -68,7 +68,7 @@ internal class MainCommand : ICommand
             X = Pos.Right(queueWin),
             Y = Pos.Bottom(searchWin),
             Width = Dim.Fill(),
-            Height = Dim.Fill() - 8,
+            Height = Dim.Fill()! - 8,
             ColorScheme = customColors
         };
 

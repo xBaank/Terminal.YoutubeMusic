@@ -18,7 +18,7 @@ internal class PlayerView(Window win, PlayerController player)
         win.RemoveAll();
         ResetTitle();
 
-        var baseContainer = new View { Height = Dim.Auto(), Width = Dim.Auto(), };
+        var baseContainer = new View { Height = Dim.Auto(), Width = Dim.Fill(), };
 
         var backButton = new Button
         {

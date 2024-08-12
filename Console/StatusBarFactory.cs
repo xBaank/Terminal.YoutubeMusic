@@ -16,7 +16,14 @@ internal class StatusBarFactory(
     public StatusBar Create() =>
         new(
             [
-                new Shortcut(Key.Esc, "Exit", () => { }),
+                new Shortcut(
+                    Key.Esc,
+                    "Exit",
+                    () =>
+                    {
+                        Application.RequestStop();
+                    }
+                ),
                 new Shortcut(Key.Q.WithCtrl, "Search", searchView.SetFocus),
                 new Shortcut(
                     Key.L.WithCtrl,
