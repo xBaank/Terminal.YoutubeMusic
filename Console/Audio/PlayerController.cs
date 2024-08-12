@@ -249,6 +249,7 @@ public class PlayerController : IAsyncDisposable
             //This could happen if the video is too old and there is no opus support
             _currentSongTokenSource.Cancel();
             await _audioSender.DisposeAsync();
+            State = PlayState.Stopped;
             OnFinish?.Invoke();
         }
     }
