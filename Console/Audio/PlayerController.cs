@@ -233,6 +233,7 @@ public class PlayerController : IAsyncDisposable
                 await _audioSender.WaitForEmptyBuffer.Task;
                 _currentSongTokenSource.Cancel();
                 await _audioSender.DisposeAsync();
+                State = PlayState.Stopped;
                 OnFinish?.Invoke();
             };
 
