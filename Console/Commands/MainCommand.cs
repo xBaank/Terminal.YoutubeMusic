@@ -25,7 +25,7 @@ internal class MainCommand : ICommand
 
     public async ValueTask ExecuteAsync(IConsole console)
     {
-        Utils.ConfigurePlatformDependencies();
+        await Utils.ConfigurePlatformDependenciesAsync(console);
 
         Application.Init();
 
@@ -190,7 +190,7 @@ internal class MainCommand : ICommand
             .BuildServiceProvider();
 
         var dbContext = serviceProvider.GetRequiredService<MyDbContext>();
-        dbContext.Database.Migrate();
+        await dbContext.Database.MigrateAsync();
 
         await using var playerController = serviceProvider.GetRequiredService<PlayerController>();
         var playerView = serviceProvider.GetRequiredService<PlayerView>();

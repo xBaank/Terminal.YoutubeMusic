@@ -8,10 +8,12 @@ public static class Utils
 {
     private static bool _isShowing = false;
 
-    public static void ConfigurePlatformDependencies(IConsole console)
+    public static async ValueTask ConfigurePlatformDependenciesAsync(IConsole console)
     {
         PortAudio.LoadNativeLibrary();
         PortAudio.Initialize();
+        await console.Output.WriteLineAsync("Ignore any warnings above this message");
+        await console.Output.WriteLineAsync("[PortAudio] Initialized corretly");
     }
 
     public static string? ShowInputDialog(string title, string prompt, ColorScheme colorScheme)
