@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-	<UseAppHost>false</UseAppHost> 
+	<UseAppHost>true</UseAppHost> 
+    <TrimMode>full</TrimMode>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -18,7 +19,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.7" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
     <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
-    <PackageReference Include="PortAudioSharp2" Version="1.0.4" />
+    <PackageReference Include="PortAudioSharp" Version="0.3.0" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="Terminal.Gui" Version="2.0.0-prealpha.216" />
@@ -27,4 +28,35 @@
   <ItemGroup>
         <InternalsVisibleTo Include="Tests" />
   </ItemGroup>
+	
+  <ItemGroup>
+    <TrimmerRootAssembly Include="CliFx" />
+    <TrimmerRootAssembly Include="Microsoft.EntityFrameworkCore.Sqlite" />
+  </ItemGroup>
+
+ <PropertyGroup>
+    <PortAudioPlatform>$(RuntimeIdentifier)</PortAudioPlatform>
+    <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('Windows')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">win-arm64</PortAudioPlatform>
+    <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('Windows')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X86'">win-x86</PortAudioPlatform>
+    <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('Windows')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X64'">win-x64</PortAudioPlatform>
+    <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('Linux')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">linux-arm64</PortAudioPlatform>
+    <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('Linux')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X86'">linux-x86</PortAudioPlatform>
+    <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('Linux')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X64'">linux-x64</PortAudioPlatform>
+    <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('OSX')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">osx-arm64</PortAudioPlatform>
+    <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('OSX')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X64'">osx-x64</PortAudioPlatform>
+    <PortAudioFileName Condition="$(PortAudioPlatform.StartsWith('win-'))">portaudio.dll</PortAudioFileName>
+    <PortAudioFileName Condition="$(PortAudioPlatform.StartsWith('linux-'))">libportaudio.so</PortAudioFileName>
+    <PortAudioFileName Condition="'$(PortAudioFileName)' == ''">libportaudio.dylib</PortAudioFileName>
+  </PropertyGroup>
+
+  <Target Name="Download PortAudio before build" BeforeTargets="PreBuildEvent">
+    <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(ProjectDir)/DownloadPortAudioBin.ps1&quot; -Platform $(PortAudioPlatform) -OutputPath &quot;$(ProjectDir)/$(PortAudioFileName)&quot;" LogStandardErrorAsError="true" />
+    <Copy SourceFiles="$(ProjectDir)/$(PortAudioFileName)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="Download PortAudio before publish" BeforeTargets="PrepareForPublish">
+    <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(ProjectDir)/DownloadPortAudioBin.ps1&quot; -Platform $(PortAudioPlatform) -OutputPath &quot;$(ProjectDir)/$(PortAudioFileName)&quot;" LogStandardErrorAsError="true" />
+    <Copy SourceFiles="$(ProjectDir)/$(PortAudioFileName)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>
