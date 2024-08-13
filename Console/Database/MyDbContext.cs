@@ -2,8 +2,13 @@
 
 namespace Console.Database;
 
-internal class MyDbContext(DbContextOptions<MyDbContext> options) : DbContext(options)
+internal class MyDbContext : DbContext
 {
+    public MyDbContext(DbContextOptions options)
+        : base(options) { }
+
+    public MyDbContext() { }
+
     public DbSet<LocalSong> Songs { get; set; }
     public DbSet<LocalPlaylist> Playlists { get; set; }
     public DbSet<LocalPlaylistSong> PlaylistSongs { get; set; }
