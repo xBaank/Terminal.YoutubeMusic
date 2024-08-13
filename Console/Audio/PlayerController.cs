@@ -1,5 +1,6 @@
 using Console.Audio.Containers.Matroska;
 using Console.Audio.DownloadHandlers;
+using Console.Repositories;
 using Nito.AsyncEx;
 using Nito.Disposables.Internals;
 using YoutubeExplode;
@@ -8,17 +9,20 @@ using YoutubeExplode.Videos;
 
 namespace Console.Audio;
 
-public class PlayerController : IAsyncDisposable
+internal class PlayerController(YoutubeClient youtubeClient, SettingsRepository settingsRepository)
+    : IAsyncDisposable
 {
     private readonly AsyncLock _lock = new();
-    private readonly YoutubeClient _youtubeClient;
-    private float _volume = 0.5f;
+    private readonly YoutubeClient _youtubeClient = youtubeClient;
+    private readonly SettingsRepository _settingsRepository = settingsRepository;
+    private float _volume = settingsRepository.GetSettings().Volume / 100f;
     private PlayState _state = PlayState.Stopped;
     private List<IVideo> _queue = [];
     private int _currentSongIndex = 0;
     private Matroska? _matroskaPlayerBuffer = null;
     private AudioSender? _audioSender = null;
     private CancellationTokenSource _currentSongTokenSource = new();
+    private CancellationTokenSource _currentSettingsTokenSource = new();
     private bool _disposed = false;
 
     public event Action? StateChanged;
@@ -44,21 +48,40 @@ public class PlayerController : IAsyncDisposable
                 return;
 
             _volume = value / 100f;
+            SaveVolume(value);
 
             if (_audioSender is not null)
                 _audioSender.Volume = _volume;
         }
     }
+
+    private void SaveVolume(int value)
+    {
+        _currentSettingsTokenSource.Cancel();
+        _currentSettingsTokenSource = new();
+
+        Task.Run(
+            async () =>
+            {
+                await Task.Delay(1000, _currentSettingsTokenSource.Token);
+                var settings = await _settingsRepository.GetSettingsAsync(
+                    _currentSettingsTokenSource.Token
+                );
+                settings.Volume = value;
+                await _settingsRepository.SaveSettingsAsync(
+                    settings,
+                    _currentSettingsTokenSource.Token
+                );
+            },
+            _currentSettingsTokenSource.Token
+        );
+    }
+
     public TimeSpan? Time => _audioSender?.CurrentTime;
     public TimeSpan? TotalTime => _matroskaPlayerBuffer?.TotalTime ?? Song?.Duration;
     public IVideo? Song => _queue.ElementAtOrDefault(_currentSongIndex);
     public IReadOnlyCollection<IVideo> Songs => _queue;
     public LoopState LoopState { get; set; }
-
-    public PlayerController(YoutubeClient youtubeClient)
-    {
-        _youtubeClient = youtubeClient;
-    }
 
     public async ValueTask DisposeAsync()
     {
@@ -80,6 +103,8 @@ public class PlayerController : IAsyncDisposable
         {
             await _audioSender.DisposeAsync().ConfigureAwait(false);
         }
+
+        await _settingsRepository.DisposeAsync();
 
         // Suppress finalization
         GC.SuppressFinalize(this);

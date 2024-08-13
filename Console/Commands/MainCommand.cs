@@ -107,12 +107,14 @@ internal class MainCommand : ICommand
         var serviceProvider = new ServiceCollection()
             .AddScoped<MyDbContext>()
             .AddScoped<LocalPlaylistsRepository>()
+            .AddScoped<SettingsRepository>()
             .AddSingleton<SharedCancellationTokenSource>()
             .AddSingleton<HttpClient>()
             .AddSingleton(provider =>
             {
                 var youtubeClient = provider.GetRequiredService<YoutubeClient>();
-                return new PlayerController(youtubeClient);
+                var settingsRepository = provider.GetRequiredService<SettingsRepository>();
+                return new PlayerController(youtubeClient, settingsRepository);
             })
             .AddSingleton(provider =>
             {
@@ -189,8 +191,10 @@ internal class MainCommand : ICommand
             })
             .BuildServiceProvider();
 
-        var dbContext = serviceProvider.GetRequiredService<MyDbContext>();
+        using var dbContext = serviceProvider.GetRequiredService<MyDbContext>();
+        using var settingsRepository = serviceProvider.GetRequiredService<SettingsRepository>();
         await dbContext.Database.MigrateAsync();
+        await settingsRepository.InitializeAsync();
 
         await using var playerController = serviceProvider.GetRequiredService<PlayerController>();
         var playerView = serviceProvider.GetRequiredService<PlayerView>();

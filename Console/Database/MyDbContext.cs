@@ -7,10 +7,11 @@ internal class MyDbContext : DbContext
     public DbSet<LocalSong> Songs { get; set; }
     public DbSet<LocalPlaylist> Playlists { get; set; }
     public DbSet<LocalPlaylistSong> PlaylistSongs { get; set; }
+    public DbSet<Setting> Settings { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlite("Data Source=my_playlists.db");
+        optionsBuilder.UseSqlite("Data Source=data.db");
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
