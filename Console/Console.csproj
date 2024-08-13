@@ -25,6 +25,6 @@
     <PackageReference Include="YoutubeExplodeMusic" Version="6.4.0-music.1" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Youtube\Suggestions\" />
+        <InternalsVisibleTo Include="Tests" />
   </ItemGroup>
 </Project>

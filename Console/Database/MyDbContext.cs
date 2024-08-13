@@ -2,7 +2,7 @@
 
 namespace Console.Database;
 
-internal class MyDbContext : DbContext
+internal class MyDbContext(DbContextOptions<MyDbContext> options) : DbContext(options)
 {
     public DbSet<LocalSong> Songs { get; set; }
     public DbSet<LocalPlaylist> Playlists { get; set; }
@@ -11,7 +11,10 @@ internal class MyDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlite("Data Source=data.db");
+        if (!optionsBuilder.IsConfigured)
+        {
+            optionsBuilder.UseSqlite("Data Source=data.db");
+        }
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

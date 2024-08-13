@@ -1,6 +1,10 @@
+using CliFx.Infrastructure;
 using Console;
 using Console.Audio;
+using Console.Database;
+using Console.Repositories;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using YoutubeExplode;
 
 namespace Tests;
@@ -9,10 +13,17 @@ public class PlayerTests : IAsyncDisposable
 {
     private readonly PlayerController _player;
 
+    private DbContextOptions<MyDbContext> CreateInMemoryOptions() =>
+        new DbContextOptionsBuilder<MyDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()) // Use a unique database name
+            .Options;
+
     public PlayerTests()
     {
-        Utils.ConfigurePlatformDependencies();
-        _player = new(new YoutubeClient()) { Volume = 0 };
+        var options = CreateInMemoryOptions();
+        var context = new MyDbContext(options);
+        Utils.ConfigurePlatformDependenciesAsync(new FakeConsole()).GetAwaiter().GetResult();
+        _player = new(new YoutubeClient(), new SettingsRepository(context)) { Volume = 0 };
     }
 
     [Fact]
