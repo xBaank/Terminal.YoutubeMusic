@@ -22,8 +22,10 @@ public class PlayerTests : IAsyncDisposable
     {
         var options = CreateInMemoryOptions();
         var context = new MyDbContext(options);
+        var settings = new SettingsRepository(context);
         Utils.ConfigurePlatformDependenciesAsync(new FakeConsole()).GetAwaiter().GetResult();
-        _player = new(new YoutubeClient(), new SettingsRepository(context)) { Volume = 0 };
+        settings.InitializeAsync().GetAwaiter().GetResult();
+        _player = new(new YoutubeClient(), settings) { Volume = 0 };
     }
 
     [Fact]
