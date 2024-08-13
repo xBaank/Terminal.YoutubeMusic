@@ -28,8 +28,6 @@ internal class AudioSender(float volume, PlayState initialState) : IAsyncDisposa
 
     public unsafe void StartSending(CancellationToken token = default)
     {
-        PortAudio.Initialize();
-
         // Define a callback delegate for audio processing
         StreamCallbackResult callback(
             IntPtr input,

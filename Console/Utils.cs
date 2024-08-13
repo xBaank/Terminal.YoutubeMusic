@@ -1,4 +1,5 @@
-﻿using PortAudioSharp;
+﻿using CliFx.Infrastructure;
+using PortAudioSharp;
 using Terminal.Gui;
 
 namespace Console;
@@ -7,9 +8,10 @@ public static class Utils
 {
     private static bool _isShowing = false;
 
-    public static void ConfigurePlatformDependencies()
+    public static void ConfigurePlatformDependencies(IConsole console)
     {
         PortAudio.LoadNativeLibrary();
+        PortAudio.Initialize();
     }
 
     public static string? ShowInputDialog(string title, string prompt, ColorScheme colorScheme)
