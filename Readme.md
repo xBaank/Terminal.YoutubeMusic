@@ -29,7 +29,7 @@ To login you can extract the cookies from music.youtube.com using:
 - Firefox [cookies.txt](https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/)
 - Opera [edit this cookie](https://addons.opera.com/en/extensions/details/edit-this-cookie)
 
-and then running `dotnet .\Console.dll --cookies-path path_to_cookies.txt`
+and then running `Console --cookies-path path_to_cookies.txt`
 
 ## Download
 > [!WARNING]\
