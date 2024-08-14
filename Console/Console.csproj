@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
 	<UseAppHost>true</UseAppHost> 
-    <TrimMode>full</TrimMode>
+    <PublishTrimmed>true</PublishTrimmed>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -25,15 +25,11 @@
     <PackageReference Include="Terminal.Gui" Version="2.0.0-prealpha.216" />
     <PackageReference Include="YoutubeExplodeMusic" Version="6.4.0-music.1" />
   </ItemGroup>
-  <ItemGroup>
-        <InternalsVisibleTo Include="Tests" />
-  </ItemGroup>
 	
-  <ItemGroup>
-    <TrimmerRootAssembly Include="CliFx" />
-    <TrimmerRootAssembly Include="Microsoft.EntityFrameworkCore.Sqlite" />
-  </ItemGroup>
-
+ <ItemGroup>
+    <InternalsVisibleTo Include="Tests" />
+ </ItemGroup>
+		 
  <PropertyGroup>
     <PortAudioPlatform>$(RuntimeIdentifier)</PortAudioPlatform>
     <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('Windows')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">win-arm64</PortAudioPlatform>
@@ -48,6 +44,17 @@
     <PortAudioFileName Condition="$(PortAudioPlatform.StartsWith('linux-'))">libportaudio.so</PortAudioFileName>
     <PortAudioFileName Condition="'$(PortAudioFileName)' == ''">libportaudio.dylib</PortAudioFileName>
   </PropertyGroup>
+	
+    <Target Name="GenerateMigrationsAfterBuild" AfterTargets="Build">
+      <Exec Command="dotnet ef migrations script -o migrations.sql --no-build" LogStandardErrorAsError="true" />
+      <Copy SourceFiles="$(ProjectDir)/migrations.sql" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    </Target>
+
+    <!-- Generate migrations after publish -->
+    <Target Name="GenerateMigrationsAfterPublish" AfterTargets="Publish">
+      <Exec Command="dotnet ef migrations script -o migrations.sql --no-build" LogStandardErrorAsError="true" />
+      <Copy SourceFiles="$(ProjectDir)/migrations.sql" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+    </Target>
 
   <Target Name="Download PortAudio before build" BeforeTargets="PreBuildEvent">
     <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(ProjectDir)/DownloadPortAudioBin.ps1&quot; -Platform $(PortAudioPlatform) -OutputPath &quot;$(ProjectDir)/$(PortAudioFileName)&quot;" LogStandardErrorAsError="true" />

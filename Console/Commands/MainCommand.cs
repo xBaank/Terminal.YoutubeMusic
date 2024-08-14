@@ -7,7 +7,6 @@ using Console.Database;
 using Console.Extensions;
 using Console.Repositories;
 using Console.Views;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Terminal.Gui;
 using YoutubeExplode;
@@ -193,7 +192,8 @@ internal class MainCommand : ICommand
 
         using var dbContext = serviceProvider.GetRequiredService<MyDbContext>();
         using var settingsRepository = serviceProvider.GetRequiredService<SettingsRepository>();
-        await dbContext.Database.MigrateAsync();
+        //TODO change to dapper and use fluent migrations cause this will never work
+        await dbContext.MigrateAOTAsync("migrations.sql");
         await settingsRepository.InitializeAsync();
 
         await using var playerController = serviceProvider.GetRequiredService<PlayerController>();
