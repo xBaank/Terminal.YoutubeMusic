@@ -32,14 +32,8 @@ internal class MainCommand : ICommand
         Utils.ConfigurePlatformDependencies();
         await console.Output.WriteLineAsync("Ignore any warnings above this message");
         await console.Output.WriteLineAsync("[PortAudio] Initialized corretly");
-
-        var upgrader = DeployChanges
-            .To.SQLiteDatabase(connectionString)
-            .WithScriptsEmbeddedInAssembly(Assembly.GetExecutingAssembly())
-            .LogToConsole()
-            .Build();
-
-        var result = upgrader.PerformUpgrade();
+        Utils.PerformMigrations(connectionString);
+        await console.Output.WriteLineAsync("[Db] Initialized corretly");
 
         var top = new Toplevel();
 

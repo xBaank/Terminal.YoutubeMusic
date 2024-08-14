@@ -4,6 +4,7 @@ using Console.Audio;
 using Console.Database;
 using Console.Repositories;
 using FluentAssertions;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using YoutubeExplode;
 
@@ -13,17 +14,13 @@ public class PlayerTests : IAsyncDisposable
 {
     private readonly PlayerController _player;
 
-    private DbContextOptions<MyDbContext> CreateInMemoryOptions() =>
-        new DbContextOptionsBuilder<MyDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString()) // Use a unique database name
-            .Options;
-
     public PlayerTests()
     {
-        var options = CreateInMemoryOptions();
-        var context = new MyDbContext(options);
-        var settings = new SettingsRepository(context);
+        const string connectionString = "Data Source=test.db";
+        Utils.PerformMigrations(connectionString);
         Utils.ConfigurePlatformDependencies();
+        var connection = new SqliteConnection(connectionString);
+        var settings = new SettingsRepository(connection);
         settings.InitializeAsync().GetAwaiter().GetResult();
         _player = new(new YoutubeClient(), settings) { Volume = 0 };
     }

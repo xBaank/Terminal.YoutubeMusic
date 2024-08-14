@@ -1,4 +1,6 @@
-﻿using PortAudioSharp;
+﻿using System.Reflection;
+using DbUp;
+using PortAudioSharp;
 using Terminal.Gui;
 
 namespace Console;
@@ -11,6 +13,22 @@ public static class Utils
     {
         PortAudio.LoadNativeLibrary();
         PortAudio.Initialize();
+    }
+
+    public static void PerformMigrations(string connectionString)
+    {
+        var upgrader = DeployChanges
+            .To.SQLiteDatabase(connectionString)
+            .WithScriptsEmbeddedInAssembly(Assembly.GetExecutingAssembly())
+            .LogToConsole()
+            .Build();
+
+        var result = upgrader.PerformUpgrade();
+
+        if (!result.Successful)
+        {
+            throw result.Error;
+        }
     }
 
     public static string? ShowInputDialog(string title, string prompt, ColorScheme colorScheme)
