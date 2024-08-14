@@ -1,5 +1,4 @@
-﻿using CliFx.Infrastructure;
-using PortAudioSharp;
+﻿using PortAudioSharp;
 using Terminal.Gui;
 
 namespace Console;
@@ -8,12 +7,10 @@ public static class Utils
 {
     private static bool _isShowing = false;
 
-    public static async ValueTask ConfigurePlatformDependenciesAsync(IConsole console)
+    public static void ConfigurePlatformDependencies()
     {
         PortAudio.LoadNativeLibrary();
         PortAudio.Initialize();
-        await console.Output.WriteLineAsync("Ignore any warnings above this message");
-        await console.Output.WriteLineAsync("[PortAudio] Initialized corretly");
     }
 
     public static string? ShowInputDialog(string title, string prompt, ColorScheme colorScheme)

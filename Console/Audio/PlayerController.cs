@@ -15,7 +15,7 @@ internal class PlayerController(YoutubeClient youtubeClient, SettingsRepository 
     private readonly AsyncLock _lock = new();
     private readonly YoutubeClient _youtubeClient = youtubeClient;
     private readonly SettingsRepository _settingsRepository = settingsRepository;
-    private float _volume = settingsRepository.GetSettings().Volume / 100f;
+    private float _volume = -1f;
     private PlayState _state = PlayState.Stopped;
     private List<IVideo> _queue = [];
     private int _currentSongIndex = 0;
@@ -41,7 +41,14 @@ internal class PlayerController(YoutubeClient youtubeClient, SettingsRepository 
     }
     public int Volume
     {
-        get { return (int)(_volume * 100); }
+        get
+        {
+            //Load volume if it wasnt loaded before
+            if (_volume < 0)
+                _volume = _settingsRepository.GetSettings().Volume / 100f;
+
+            return (int)(_volume * 100);
+        }
         set
         {
             if (value is < 0 or > 100)
@@ -104,7 +111,7 @@ internal class PlayerController(YoutubeClient youtubeClient, SettingsRepository 
             await _audioSender.DisposeAsync().ConfigureAwait(false);
         }
 
-        await _settingsRepository.DisposeAsync();
+        _settingsRepository.Dispose();
 
         // Suppress finalization
         GC.SuppressFinalize(this);

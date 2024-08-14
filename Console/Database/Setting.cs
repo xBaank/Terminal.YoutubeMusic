@@ -1,10 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Dapper.Contrib.Extensions;
 
 namespace Console.Database;
 
-[PrimaryKey("Id")]
 internal class Setting
 {
+    [Key]
     public int Id { get; set; }
     public int Volume { get; set; }
 }

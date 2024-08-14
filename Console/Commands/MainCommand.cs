@@ -1,12 +1,15 @@
-﻿using CliFx;
+﻿using System.Data;
+using System.Reflection;
+using CliFx;
 using CliFx.Attributes;
 using CliFx.Infrastructure;
 using Console.Audio;
 using Console.Cookies;
-using Console.Database;
 using Console.Extensions;
 using Console.Repositories;
 using Console.Views;
+using DbUp;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Terminal.Gui;
 using YoutubeExplode;
@@ -24,9 +27,19 @@ internal class MainCommand : ICommand
 
     public async ValueTask ExecuteAsync(IConsole console)
     {
-        await Utils.ConfigurePlatformDependenciesAsync(console);
+        const string connectionString = "Data Source=data.db";
 
-        Application.Init();
+        Utils.ConfigurePlatformDependencies();
+        await console.Output.WriteLineAsync("Ignore any warnings above this message");
+        await console.Output.WriteLineAsync("[PortAudio] Initialized corretly");
+
+        var upgrader = DeployChanges
+            .To.SQLiteDatabase(connectionString)
+            .WithScriptsEmbeddedInAssembly(Assembly.GetExecutingAssembly())
+            .LogToConsole()
+            .Build();
+
+        var result = upgrader.PerformUpgrade();
 
         var top = new Toplevel();
 
@@ -104,7 +117,7 @@ internal class MainCommand : ICommand
         videosWin.Add(tabView);
 
         var serviceProvider = new ServiceCollection()
-            .AddScoped<MyDbContext>()
+            .AddScoped<IDbConnection>(_ => new SqliteConnection(connectionString))
             .AddScoped<LocalPlaylistsRepository>()
             .AddScoped<SettingsRepository>()
             .AddSingleton<SharedCancellationTokenSource>()
@@ -190,11 +203,13 @@ internal class MainCommand : ICommand
             })
             .BuildServiceProvider();
 
-        using var dbContext = serviceProvider.GetRequiredService<MyDbContext>();
+        var statusBarFactory = serviceProvider.GetRequiredService<StatusBarFactory>();
         using var settingsRepository = serviceProvider.GetRequiredService<SettingsRepository>();
-        //TODO change to dapper and use fluent migrations cause this will never work
-        await dbContext.MigrateAOTAsync("migrations.sql");
         await settingsRepository.InitializeAsync();
+
+        top.Add(queueWin, searchWin, videosWin, playerWin, statusBarFactory.Create());
+
+        Application.Init();
 
         await using var playerController = serviceProvider.GetRequiredService<PlayerController>();
         var playerView = serviceProvider.GetRequiredService<PlayerView>();
@@ -203,16 +218,12 @@ internal class MainCommand : ICommand
         var recommendationsView = serviceProvider.GetRequiredService<RecommendationsView>();
         var videoSearchView = serviceProvider.GetRequiredService<VideoSearchView>();
         var localPlaylistsView = serviceProvider.GetRequiredService<LocalPlaylistsView>();
-        var statusBarFactory = serviceProvider.GetRequiredService<StatusBarFactory>();
 
         videoSearchView.ShowSearch();
         playerView.ShowPlayer();
         queueView.ShowQueue();
         recommendationsView.ShowRecommendations();
         localPlaylistsView.ShowLocalPlaylists();
-        var statusBar = statusBarFactory.Create();
-
-        top.Add(queueWin, searchWin, videosWin, playerWin, statusBar);
 
         Application.Run(top);
         top.Dispose();

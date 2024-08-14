@@ -7,16 +7,21 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);Dapper.AOT</InterceptorsPreviewNamespaces>
   </PropertyGroup>
+  <ItemGroup>
+    <None Remove="scripts\migrations\2024081401_Initial.sql" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CliFx" Version="2.3.5" />
     <PackageReference Include="Concentus" Version="2.2.2" />
     <PackageReference Include="Concentus.Native" Version="1.5.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.7">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.7" />
+    <PackageReference Include="Dapper" Version="2.1.35" />
+    <PackageReference Include="Dapper.AOT" Version="1.0.31" />
+    <PackageReference Include="Dapper.Contrib" Version="2.0.78" />
+    <PackageReference Include="dbup-sqlite" Version="5.0.40" />
+    <PackageReference Include="Lazy.Fody" Version="1.11.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.8" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
     <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
     <PackageReference Include="PortAudioSharp" Version="0.3.0" />
@@ -29,6 +34,11 @@
  <ItemGroup>
     <InternalsVisibleTo Include="Tests" />
  </ItemGroup>
+	
+ <ItemGroup>
+    <EmbeddedResource Include="Scripts/Migrations/*.sql" />
+ </ItemGroup>
+	
 		 
  <PropertyGroup>
     <PortAudioPlatform>$(RuntimeIdentifier)</PortAudioPlatform>
@@ -41,20 +51,10 @@
     <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('OSX')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">osx-arm64</PortAudioPlatform>
     <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('OSX')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X64'">osx-x64</PortAudioPlatform>
     <PortAudioFileName Condition="$(PortAudioPlatform.StartsWith('win-'))">portaudio.dll</PortAudioFileName>
-    <PortAudioFileName Condition="$(PortAudioPlatform.StartsWith('linux-'))">libportaudio.so</PortAudioFileName>
-    <PortAudioFileName Condition="'$(PortAudioFileName)' == ''">libportaudio.dylib</PortAudioFileName>
+    <PortAudioFileName Condition="$(PortAudioPlatform.StartsWith('linux-x'))">libportaudio.so</PortAudioFileName>
+    <PortAudioFileName Condition="$(PortAudioPlatform.StartsWith('linux-arm'))">libportaudio.a</PortAudioFileName>
+    <PortAudioFileName Condition="$(PortAudioPlatform.StartsWith('osx-'))">libportaudio.dylib</PortAudioFileName>
   </PropertyGroup>
-	
-    <Target Name="GenerateMigrationsAfterBuild" AfterTargets="Build">
-      <Exec Command="dotnet ef migrations script -o migrations.sql --no-build" LogStandardErrorAsError="true" />
-      <Copy SourceFiles="$(ProjectDir)/migrations.sql" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
-    </Target>
-
-    <!-- Generate migrations after publish -->
-    <Target Name="GenerateMigrationsAfterPublish" AfterTargets="Publish">
-      <Exec Command="dotnet ef migrations script -o migrations.sql --no-build" LogStandardErrorAsError="true" />
-      <Copy SourceFiles="$(ProjectDir)/migrations.sql" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
-    </Target>
 
   <Target Name="Download PortAudio before build" BeforeTargets="PreBuildEvent">
     <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(ProjectDir)/DownloadPortAudioBin.ps1&quot; -Platform $(PortAudioPlatform) -OutputPath &quot;$(ProjectDir)/$(PortAudioFileName)&quot;" LogStandardErrorAsError="true" />
