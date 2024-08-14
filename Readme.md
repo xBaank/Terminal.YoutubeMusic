@@ -36,8 +36,8 @@ and then running `dotnet .\Console.dll --cookies-path path_to_cookies.txt`
 > Expect bugs, crashes, sound glitches, etc.
 - There is no stable release yet but you can download the latest [commit](https://nightly.link/xBaank/Terminal.YoutubeMusic/workflows/dotnet/main/YoutubeConsole.zip)
 
-## How to run
-- Run `dotnet Console.dll`
+## Building requirements
+- Install powershell core
 
 ## Dependencies
 - Terminal.gui v2
