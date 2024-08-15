@@ -52,7 +52,7 @@ jobs:
         pactl set-default-sink VirtualSink
 
     - name: Test
-      if:  ${{ !endsWith(matrix.rid, 'arm64') }}
+      if: runner.os == 'Linux' || runner.os == 'Windows'
       run: dotnet test --no-build --verbosity normal
 
     - name: Publish
