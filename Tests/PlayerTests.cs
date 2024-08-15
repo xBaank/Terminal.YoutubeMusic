@@ -18,7 +18,6 @@ public class PlayerTests : IAsyncDisposable
     public PlayerTests()
     {
         const string connectionString = "Data Source=test.db";
-        Environment.SetEnvironmentVariable("DYLD_FALLBACK_LIBRARY_PATH", ".");
         PortAudio.LoadNativeLibrary(); //Only needed for tests as the portaudio.dll is on Console folder and
         Utils.PerformMigrations(connectionString);
         Utils.ConfigurePlatformDependencies();
