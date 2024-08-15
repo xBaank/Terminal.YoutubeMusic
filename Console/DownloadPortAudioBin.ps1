@@ -15,7 +15,7 @@ if (Test-Path $outputPath) {
 }
 
 # Download the archive
-Write-Host "Downloading Portaudio..."
+Write-Host "Downloading Portaudio for $platform..."
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $http = New-Object System.Net.WebClient
 try {
@@ -35,7 +35,7 @@ try {
         $zip.Dispose()
     }
 
-    Write-Host "Done downloading Portaudio."
+    Write-Host "Done downloading $fileName"
 } finally {
     # Clean up
     Remove-Item "$outputPath.zip" -Force
