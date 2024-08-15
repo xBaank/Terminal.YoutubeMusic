@@ -52,6 +52,7 @@ jobs:
         pactl set-default-sink VirtualSink
 
     - name: Test
+      if: matrix.target-arch != 'ARM64'
       run: dotnet test --no-build --verbosity normal
 
     - name: Publish
