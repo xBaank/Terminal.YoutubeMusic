@@ -11,6 +11,7 @@ public static class Utils
 
     public static void ConfigurePlatformDependencies()
     {
+        Environment.SetEnvironmentVariable("DYLD_FALLBACK_LIBRARY_PATH", ".");
         PortAudio.LoadNativeLibrary();
         PortAudio.Initialize();
     }
