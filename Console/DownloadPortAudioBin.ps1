@@ -8,14 +8,15 @@ $ErrorActionPreference = "Stop"
 # Normalize platform identifier
 $platform = $platform.ToLower().Replace("win-", "windows-")
 
+# Download the archive
+Write-Host "Downloading Portaudio for $platform..."
+
 # Check if already exists
 if (Test-Path $outputPath) {
     Write-Host "Skipped downloading Portaudio, file already exists."
     exit
 }
 
-# Download the archive
-Write-Host "Downloading Portaudio for $platform..."
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $http = New-Object System.Net.WebClient
 try {
