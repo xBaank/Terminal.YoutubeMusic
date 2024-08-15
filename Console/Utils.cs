@@ -14,7 +14,7 @@ public static class Utils
     {
         ResourceAccessor accessor = new(Assembly.GetExecutingAssembly());
 
-        LibraryItem winLib = Environment.Is64BitProcess
+        LibraryItem winLib = Environment.Is64BitOperatingSystem
             ? new LibraryItem(
                 Platform.Windows,
                 Bitness.x64,
@@ -26,20 +26,30 @@ public static class Utils
                 new LibraryFile("portaudio.dll", accessor.Binary("portaudio.dll"))
             );
 
-        LibraryManager libManager =
+        LibraryItem linuxLib =
             new(
-                new LibraryItem(
-                    Platform.Linux,
-                    Bitness.x64,
-                    new LibraryFile("libportaudio.so", accessor.Binary("libportaudio.so"))
-                ),
-                new LibraryItem(
-                    Platform.MacOs,
-                    Bitness.x64,
-                    new LibraryFile("libportaudio.dylib", accessor.Binary("libportaudio.dylib"))
-                ),
-                winLib
+                Platform.Linux,
+                Bitness.x64,
+                new LibraryFile("libportaudio.so", accessor.Binary("libportaudio.so"))
             );
+
+        LibraryItem macOs =
+            new(
+                Platform.MacOs,
+                Bitness.x64,
+                new LibraryFile("libportaudio.dylib", accessor.Binary("libportaudio.dylib"))
+            );
+
+        List<LibraryItem> items = [];
+
+        if (OperatingSystem.IsWindows())
+            items.Add(winLib);
+        if (OperatingSystem.IsLinux())
+            items.Add(linuxLib);
+        if (OperatingSystem.IsMacOS())
+            items.Add(macOs);
+
+        LibraryManager libManager = new([.. items]);
         libManager.LoadNativeLibrary();
         PortAudio.Initialize();
     }
