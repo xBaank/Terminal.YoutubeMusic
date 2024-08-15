@@ -12,47 +12,6 @@ public static class Utils
 
     public static void ConfigurePlatformDependencies()
     {
-        ResourceAccessor resourceAccessor = new(Assembly.GetExecutingAssembly());
-
-        // Define library items for different platforms and architectures
-        var libraries = new LibraryManager(
-            // Linux
-            new LibraryItem(
-                Platform.Linux,
-                Bitness.x64,
-                new LibraryFile("libportaudio.so", resourceAccessor.Binary("libportaudio.so"))
-            ),
-            new LibraryItem(
-                Platform.Linux,
-                Bitness.x64,
-                new LibraryFile("libportaudio.a", resourceAccessor.Binary("libportaudio.a"))
-            ),
-            new LibraryItem(
-                Platform.Linux,
-                Bitness.x32,
-                new LibraryFile("libportaudio.so", resourceAccessor.Binary("libportaudio.so"))
-            ),
-            // macOS
-            new LibraryItem(
-                Platform.MacOs,
-                Bitness.x64,
-                new LibraryFile("libportaudio.dylib", resourceAccessor.Binary("libportaudio.dylib"))
-            ),
-            // Windows
-            new LibraryItem(
-                Platform.Windows,
-                Bitness.x64,
-                new LibraryFile("portaudio.dll", resourceAccessor.Binary("portaudio.dll"))
-            ),
-            new LibraryItem(
-                Platform.Windows,
-                Bitness.x32,
-                new LibraryFile("portaudio.dll", resourceAccessor.Binary("portaudio.dll"))
-            )
-        );
-
-        // Load the appropriate library
-        libraries.LoadNativeLibrary();
         PortAudio.Initialize();
     }
 
