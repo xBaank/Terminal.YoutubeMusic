@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using DbUp;
+using NativeLibraryManager;
 using PortAudioSharp;
 using Terminal.Gui;
 
@@ -11,8 +12,30 @@ public static class Utils
 
     public static void ConfigurePlatformDependencies()
     {
-        Environment.SetEnvironmentVariable("DYLD_FALLBACK_LIBRARY_PATH", ".");
-        PortAudio.LoadNativeLibrary();
+        ResourceAccessor accessor = new ResourceAccessor(Assembly.GetExecutingAssembly());
+        LibraryManager libManager = new LibraryManager(
+            new LibraryItem(
+                Platform.Linux,
+                Bitness.x64,
+                new LibraryFile("libportaudio.so", accessor.Binary("libportaudio.so"))
+            ),
+            new LibraryItem(
+                Platform.MacOs,
+                Bitness.x64,
+                new LibraryFile("libportaudio.dylib", accessor.Binary("libportaudio.dylib"))
+            ),
+            new LibraryItem(
+                Platform.Windows,
+                Bitness.x64,
+                new LibraryFile("portaudio.dll", accessor.Binary("portaudio.dll"))
+            ),
+            new LibraryItem(
+                Platform.Windows,
+                Bitness.x32,
+                new LibraryFile("portaudio.dll", accessor.Binary("portaudio.dll"))
+            )
+        );
+        libManager.LoadNativeLibrary();
         PortAudio.Initialize();
     }
 
