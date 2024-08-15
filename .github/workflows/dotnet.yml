@@ -8,7 +8,40 @@ on:
     branches: ["*"]
 
 jobs:
-  build:
+  test:
+    strategy:
+      matrix:
+        rid:
+          - win-x64
+          - linux-x64
+
+    runs-on: ${{ matrix.rid == 'win-x64' && 'windows-latest' || 'ubuntu-latest' }}
+    timeout-minutes: 10
+
+    steps:
+    - uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Build
+      run: dotnet build --no-restore
+    
+    # Platform-specific custom steps
+    - name: Set up PulseAudio (Linux only)
+      if: matrix.rid == 'linux-x64'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y pulseaudio
+        pulseaudio --start
+        pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=Virtual_Sink
+        pactl set-default-sink VirtualSink
+
+    - name: Test
+      run: dotnet test --no-build --verbosity normal
+  pack:
     strategy:
       matrix:
         rid:
@@ -32,27 +65,6 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
-
-    # OS-specific steps
-    - name: Restore dependencies
-      run: dotnet restore
-
-    - name: Build
-      run: dotnet build --no-restore
-
-          # Platform-specific custom steps
-    - name: Set up PulseAudio (Linux only)
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y pulseaudio
-        pulseaudio --start
-        pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=Virtual_Sink
-        pactl set-default-sink VirtualSink
-
-    - name: Test
-      if: runner.os == 'Linux' || runner.os == 'Windows'
-      run: dotnet test --no-build --verbosity normal
 
     - name: Publish
       run: cd Console && dotnet publish -c Release --runtime ${{ matrix.rid }} -o ./output
