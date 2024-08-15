@@ -12,6 +12,36 @@ public static class Utils
 
     public static void ConfigurePlatformDependencies()
     {
+        ResourceAccessor accessor = new(Assembly.GetExecutingAssembly());
+        LibraryManager libManager =
+            new(
+                new LibraryItem(
+                    Platform.Linux,
+                    Bitness.x64,
+                    new LibraryFile("libportaudio.so", accessor.Binary("libportaudio.so"))
+                ),
+                new LibraryItem(
+                    Platform.Linux,
+                    Bitness.x32,
+                    new LibraryFile("libportaudio.so", accessor.Binary("libportaudio.so"))
+                ),
+                new LibraryItem(
+                    Platform.MacOs,
+                    Bitness.x64,
+                    new LibraryFile("libportaudio.dylib", accessor.Binary("libportaudio.dylib"))
+                ),
+                new LibraryItem(
+                    Platform.Windows,
+                    Bitness.x64,
+                    new LibraryFile("portaudio.dll", accessor.Binary("portaudio.dll"))
+                ),
+                new LibraryItem(
+                    Platform.Windows,
+                    Bitness.x32,
+                    new LibraryFile("portaudio.dll", accessor.Binary("portaudio.dll"))
+                )
+            );
+        libManager.LoadNativeLibrary();
         PortAudio.Initialize();
     }
 
