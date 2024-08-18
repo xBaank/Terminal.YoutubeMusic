@@ -182,6 +182,7 @@ internal class PlayerController(YoutubeClient youtubeClient, SettingsRepository 
 
         var playlist = await _youtubeClient
             .Playlists.GetVideosAsync(recommendation.PlaylistId, cancellationToken)
+            .Take(200)
             .ToListAsync(cancellationToken: cancellationToken);
 
         _queue = [firstVideo, .. playlist];
