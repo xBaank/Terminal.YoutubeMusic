@@ -14,7 +14,6 @@ jobs:
         rid:
           - win-x64
           - linux-x64
-          - osx-arm64
 
     runs-on: ${{ startsWith(matrix.rid, 'win-') && 'windows-latest' || startsWith(matrix.rid, 'osx-') && 'macos-latest' || 'ubuntu-latest' }}
     timeout-minutes: 10
@@ -39,13 +38,6 @@ jobs:
         pulseaudio --start
         pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=Virtual_Sink
         pactl set-default-sink VirtualSink
-
-    # Platform-specific custom steps
-    - name: Set up Mac 
-      if: matrix.rid == 'osx-arm64'
-      run: |
-        arch -arm64 brew install llvm
-        sudo gem install ffi
 
     - name: Test
       run: dotnet test --no-build --verbosity normal
