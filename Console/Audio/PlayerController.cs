@@ -13,11 +13,12 @@ internal class PlayerController(YoutubeClient youtubeClient, SettingsRepository 
     : IAsyncDisposable
 {
     private readonly AsyncLock _lock = new();
+    private readonly object _listLock = new();
     private readonly YoutubeClient _youtubeClient = youtubeClient;
     private readonly SettingsRepository _settingsRepository = settingsRepository;
     private float _volume = -1f;
     private PlayState _state = PlayState.Stopped;
-    private List<IVideo> _queue = [];
+    private readonly List<IVideo> _queue = [];
     private int _currentSongIndex = 0;
     private Matroska? _matroskaPlayerBuffer = null;
     private AudioSender? _audioSender = null;
@@ -86,8 +87,27 @@ internal class PlayerController(YoutubeClient youtubeClient, SettingsRepository 
 
     public TimeSpan? Time => _audioSender?.CurrentTime;
     public TimeSpan? TotalTime => _matroskaPlayerBuffer?.TotalTime ?? Song?.Duration;
-    public IVideo? Song => _queue.ElementAtOrDefault(_currentSongIndex);
-    public IReadOnlyCollection<IVideo> Songs => _queue;
+    public IVideo? Song
+    {
+        get
+        {
+            lock (_listLock)
+            {
+                return _queue.ElementAtOrDefault(_currentSongIndex);
+            }
+        }
+    }
+
+    public IReadOnlyCollection<IVideo> Songs
+    {
+        get
+        {
+            lock (_listLock)
+            {
+                return _queue.ToList().AsReadOnly(); // Avoid direct access to _queue
+            }
+        }
+    }
     public LoopState LoopState { get; set; }
 
     public async ValueTask DisposeAsync()
@@ -162,7 +182,11 @@ internal class PlayerController(YoutubeClient youtubeClient, SettingsRepository 
         ResetState();
         _currentSongIndex = 0;
 
-        _queue = [.. videos];
+        lock (_listLock)
+        {
+            _queue.Clear();
+            _queue.AddRange(videos);
+        }
         QueueChanged?.Invoke(_queue);
     }
 
@@ -185,8 +209,12 @@ internal class PlayerController(YoutubeClient youtubeClient, SettingsRepository 
             .Take(200)
             .ToListAsync(cancellationToken: cancellationToken);
 
-        _queue = [firstVideo, .. playlist];
-        _queue = _queue.WhereNotNull().DistinctBy(i => i.Id).ToList(); //Remove duplicate videos
+        lock (_listLock)
+        {
+            _queue.Clear();
+            IVideo?[] allVideos = [firstVideo, .. playlist];
+            _queue.AddRange(allVideos.WhereNotNull().DistinctBy(i => i.Id));
+        }
         QueueChanged?.Invoke(_queue);
     }
 
@@ -199,7 +227,11 @@ internal class PlayerController(YoutubeClient youtubeClient, SettingsRepository 
 
         if (item is VideoSearchResult videoSearchResult)
         {
-            _queue = [videoSearchResult];
+            lock (_listLock)
+            {
+                _queue.Clear();
+                _queue.Add(videoSearchResult);
+            }
         }
 
         if (item is PlaylistSearchResult playlistSearchResult)
@@ -208,7 +240,11 @@ internal class PlayerController(YoutubeClient youtubeClient, SettingsRepository 
                 .Playlists.GetVideosAsync(playlistSearchResult.Id, cancellationToken)
                 .ToListAsync<IVideo>(cancellationToken: cancellationToken);
 
-            _queue = videos;
+            lock (_listLock)
+            {
+                _queue.Clear();
+                _queue.AddRange(videos);
+            }
         }
 
         if (item is ChannelSearchResult channelSearchResult)
@@ -217,7 +253,11 @@ internal class PlayerController(YoutubeClient youtubeClient, SettingsRepository 
                 .Channels.GetUploadsAsync(channelSearchResult.Id, cancellationToken)
                 .ToListAsync<IVideo>(cancellationToken: cancellationToken);
 
-            _queue = videos;
+            lock (_listLock)
+            {
+                _queue.Clear();
+                _queue.AddRange(videos);
+            }
         }
 
         QueueChanged?.Invoke(_queue);

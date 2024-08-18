@@ -30,7 +30,7 @@ internal class QueueView(
 
     public async Task SavePlaylist()
     {
-        var songs = playerController.Songs.ToList();
+        var songs = playerController.Songs;
 
         if (songs.Count == 0)
             return;
