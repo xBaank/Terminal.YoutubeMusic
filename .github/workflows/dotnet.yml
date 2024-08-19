@@ -41,10 +41,10 @@ jobs:
         pactl set-default-sink VirtualSink
 
     - name: Test Linux and Windows
-      if: ${{ runner.os != "MacOS" }}
+      if: runner.os != 'MacOS'
       run: dotnet test --no-build --verbosity normal
     - name: Mac
-      if: ${{ runner.os == "MacOS" }}
+      if: runner.os == 'MacOS' 
       run: arch -x86_64 dotnet test --no-build --verbosity normal
   pack:
     strategy:
