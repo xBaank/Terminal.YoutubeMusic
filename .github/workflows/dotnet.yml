@@ -27,8 +27,12 @@ jobs:
       with:
         dotnet-version: 8.0.x
 
-    - name: Build
+    - name: Build Linux and Windows
+      if: runner.os != 'MacOS'
       run: dotnet build
+    - name: Build MacOS
+      if: runner.os == 'MacOS'
+      run: arch -x86_64 dotnet build
     
     # Platform-specific custom steps
     - name: Set up PulseAudio (Linux only)
