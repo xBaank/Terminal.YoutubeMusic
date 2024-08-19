@@ -7,6 +7,8 @@ $ErrorActionPreference = "Stop"
 
 # Normalize platform identifier
 $platform = $platform.ToLower().Replace("win-", "windows-")
+$platform = $platform.ToLower().Replace("osx-x64", "osx-uni")
+$platform = $platform.ToLower().Replace("osx-arm64", "osx-uni")
 
 # Download the archive
 Write-Host "Downloading Portaudio for $platform..."
