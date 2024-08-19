@@ -26,10 +26,6 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
-
-    - name: Setup .NET Mac
-      if: runner.os == 'MacOS'
-      run: arch -x86_64 brew install --cask dotnet-sdk
         
     - name: Install dependencies
       run: |
