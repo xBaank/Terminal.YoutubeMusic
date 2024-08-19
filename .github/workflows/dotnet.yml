@@ -28,7 +28,7 @@ jobs:
         dotnet-version: 8.0.x
 
     - name: Build
-      run: dotnet build
+      run: dotnet build -r ${{ matrix.rid }}
 
     - name: Move file for mac
       if: runner.os == 'MacOS'
