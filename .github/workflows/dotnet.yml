@@ -14,7 +14,7 @@ jobs:
         rid:
           - win-x64
           - linux-x64
-          - osx-arm64
+          - osx-x64
 
     runs-on: ${{ startsWith(matrix.rid, 'win-') && 'windows-latest' || startsWith(matrix.rid, 'osx-') && 'macos-latest' || 'ubuntu-latest' }}
     timeout-minutes: 10
@@ -31,8 +31,8 @@ jobs:
       run: |
         dotnet restore
 
-    - name: Build Debug
-      run: dotnet build --configuration Debug --no-restore
+    - name: Build Release
+      run: dotnet build --configuration Release --no-restore
     
     # Platform-specific custom steps
     - name: Set up PulseAudio (Linux only)
@@ -45,7 +45,7 @@ jobs:
         pactl set-default-sink VirtualSink
 
     - name: Test
-      run: dotnet test --verbosity normal
+      run: dotnet test --verbosity normal --configuration Release
   pack:
     strategy:
       matrix:
