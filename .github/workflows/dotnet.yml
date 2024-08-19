@@ -33,8 +33,7 @@ jobs:
     - name: Check arch mac
       if: runner.os == 'MacOS'
       run: |
-        pwd
-        ls
+        ls -R
         file ./Console/bin/Debug/net8.0/libaudio.dylib
     
     # Platform-specific custom steps
