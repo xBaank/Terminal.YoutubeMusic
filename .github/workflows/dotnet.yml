@@ -29,6 +29,10 @@ jobs:
 
     - name: Build
       run: dotnet build
+
+    - name: Check arch mac
+      if: runner.os == 'MacOS'
+      run: file ./Tests/bin/Debug/net8.0/libaudio.dylib
     
     # Platform-specific custom steps
     - name: Set up PulseAudio (Linux only)
