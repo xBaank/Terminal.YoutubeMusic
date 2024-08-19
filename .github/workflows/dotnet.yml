@@ -34,7 +34,7 @@ jobs:
       if: runner.os == 'MacOS'
       run: |
         ls -R
-        file ./Console/bin/Debug/net8.0/libaudio.dylib
+        file ./Console/bin/Debug/net8.0/libportaudio.dylib
     
     # Platform-specific custom steps
     - name: Set up PulseAudio (Linux only)
