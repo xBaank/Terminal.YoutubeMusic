@@ -14,6 +14,7 @@ jobs:
         rid:
           - win-x64
           - linux-x64
+          - osx-x64
 
     runs-on: ${{ startsWith(matrix.rid, 'win-') && 'windows-latest' || startsWith(matrix.rid, 'osx-') && 'macos-latest' || 'ubuntu-latest' }}
     timeout-minutes: 10
@@ -39,8 +40,12 @@ jobs:
         pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=Virtual_Sink
         pactl set-default-sink VirtualSink
 
-    - name: Test
+    - name: Test Linux and Windows
+      if: ${{ runner.os != "MacOS" }}
       run: dotnet test --no-build --verbosity normal
+    - name: Mac
+      if: ${{ runner.os != "MacOS" }}
+      run: arch -x86_64 dotnet test --no-build --verbosity normal
   pack:
     strategy:
       matrix:
