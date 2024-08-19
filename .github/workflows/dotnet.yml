@@ -26,9 +26,13 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
+        
+    - name: Install dependencies
+      run: |
+        dotnet restore
 
-    - name: Build
-      run: cd Tests && dotnet build -r ${{ matrix.rid }}
+    - name: Build Debug
+      run: dotnet build --configuration Debug --no-restore
     
     # Platform-specific custom steps
     - name: Set up PulseAudio (Linux only)
@@ -41,7 +45,7 @@ jobs:
         pactl set-default-sink VirtualSink
 
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --verbosity normal
   pack:
     strategy:
       matrix:
