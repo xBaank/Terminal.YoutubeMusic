@@ -26,7 +26,7 @@ try {
 }
 
 try {
-    # Extract FFmpeg
+    # Extract PortAudio
     Add-Type -Assembly System.IO.Compression.FileSystem
     $zip = [IO.Compression.ZipFile]::OpenRead("$outputPath.zip")
     try {

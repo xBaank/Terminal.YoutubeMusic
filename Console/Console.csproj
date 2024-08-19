@@ -50,11 +50,10 @@
     <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('Linux')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">linux-arm64</PortAudioPlatform>
     <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('Linux')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X86'">linux-x86</PortAudioPlatform>
     <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('Linux')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X64'">linux-x64</PortAudioPlatform>
-    <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('OSX')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">osx-arm64</PortAudioPlatform>
-    <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('OSX')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X64'">osx-x64</PortAudioPlatform>
+    <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('OSX')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">osx-uni</PortAudioPlatform>
+    <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('OSX')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X64'">osx-uni</PortAudioPlatform>
     <PortAudioFileName Condition="$(PortAudioPlatform.StartsWith('win-'))">portaudio.dll</PortAudioFileName>
-    <PortAudioFileName Condition="$(PortAudioPlatform.StartsWith('linux-x'))">libportaudio.so</PortAudioFileName>
-    <PortAudioFileName Condition="$(PortAudioPlatform.StartsWith('linux-arm'))">libportaudio.a</PortAudioFileName>
+    <PortAudioFileName Condition="$(PortAudioPlatform.StartsWith('linux-'))">libportaudio.so</PortAudioFileName>
     <PortAudioFileName Condition="$(PortAudioPlatform.StartsWith('osx-'))">libportaudio.dylib</PortAudioFileName>
   </PropertyGroup>
 
