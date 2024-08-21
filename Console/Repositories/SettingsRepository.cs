@@ -1,22 +1,25 @@
-﻿using Console.Database;
-using Microsoft.EntityFrameworkCore;
+﻿using System.Data;
+using Console.Database;
+using Dapper;
+using Dapper.Contrib.Extensions;
 
 namespace Console.Repositories;
 
-internal class SettingsRepository(MyDbContext db) : IDisposable, IAsyncDisposable
+internal class SettingsRepository(IDbConnection db) : IDisposable
 {
     public void Dispose() => db.Dispose();
-
-    public ValueTask DisposeAsync() => db.DisposeAsync();
 
     private Setting? _currentSettings;
 
     public async ValueTask InitializeAsync()
     {
-        if (!await db.Settings.AnyAsync())
+        const string checkSettingsSql = "SELECT COUNT(*) FROM Settings;";
+        const string insertDefaultSettingsSql = "INSERT INTO Settings (Volume) VALUES (50);";
+
+        var count = await db.ExecuteScalarAsync<int>(checkSettingsSql);
+        if (count == 0)
         {
-            await db.Settings.AddAsync(new Setting { Volume = 50 });
-            await db.SaveChangesAsync();
+            await db.ExecuteAsync(insertDefaultSettingsSql);
         }
     }
 
@@ -25,14 +28,15 @@ internal class SettingsRepository(MyDbContext db) : IDisposable, IAsyncDisposabl
         CancellationToken cancellationToken = default
     )
     {
-        db.Settings.Update(settings);
-        await db.SaveChangesAsync(cancellationToken);
+        await db.UpdateAsync(settings);
     }
 
     public async ValueTask<Setting> GetSettingsAsync(CancellationToken cancellation = default)
     {
+        const string selectSettingsSql = "SELECT * FROM Settings;";
+
         _currentSettings ??=
-            await db.Settings.FirstOrDefaultAsync(cancellationToken: cancellation)
+            await db.QuerySingleOrDefaultAsync<Setting>(selectSettingsSql)
             ?? throw new Exception("Settings not initialized");
 
         return _currentSettings;

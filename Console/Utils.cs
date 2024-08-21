@@ -1,4 +1,6 @@
-﻿using CliFx.Infrastructure;
+﻿using System.Reflection;
+using DbUp;
+using NativeLibraryManager;
 using PortAudioSharp;
 using Terminal.Gui;
 
@@ -8,12 +10,25 @@ public static class Utils
 {
     private static bool _isShowing = false;
 
-    public static async ValueTask ConfigurePlatformDependenciesAsync(IConsole console)
+    public static void ConfigurePlatformDependencies()
     {
-        PortAudio.LoadNativeLibrary();
         PortAudio.Initialize();
-        await console.Output.WriteLineAsync("Ignore any warnings above this message");
-        await console.Output.WriteLineAsync("[PortAudio] Initialized corretly");
+    }
+
+    public static void PerformMigrations(string connectionString)
+    {
+        var upgrader = DeployChanges
+            .To.SQLiteDatabase(connectionString)
+            .WithScriptsEmbeddedInAssembly(Assembly.GetExecutingAssembly())
+            .LogToConsole()
+            .Build();
+
+        var result = upgrader.PerformUpgrade();
+
+        if (!result.Successful)
+        {
+            throw result.Error;
+        }
     }
 
     public static string? ShowInputDialog(string title, string prompt, ColorScheme colorScheme)
