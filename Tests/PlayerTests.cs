@@ -18,7 +18,6 @@ public class PlayerTests : IAsyncDisposable
     public PlayerTests()
     {
         const string connectionString = "Data Source=test.db";
-        PortAudio.LoadNativeLibrary(); //Only needed for tests as the portaudio.dll is on Console folder and
         Utils.PerformMigrations(connectionString);
         Utils.ConfigurePlatformDependencies();
         var connection = new SqliteConnection(connectionString);
