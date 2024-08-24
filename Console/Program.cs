@@ -10,6 +10,8 @@ namespace Console;
 public static class Program
 {
     [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(MainCommand))]
+    [RequiresUnreferencedCode("Calls Terminal.Gui.Application.Init(ConsoleDriver, String)")]
+    [RequiresDynamicCode("Calls Terminal.Gui.Application.Init(ConsoleDriver, String)")]
     public static async Task<int> Main() =>
         await new CliApplicationBuilder().AddCommand<MainCommand>().Build().RunAsync();
 }

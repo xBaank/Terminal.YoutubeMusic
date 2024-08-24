@@ -4,9 +4,7 @@ namespace Console.Views;
 
 internal abstract class Loader(View view)
 {
-    private object _lock = new();
     private SpinnerView? spinner = null;
-
     public View View => view;
 
     public virtual void ShowLoading()

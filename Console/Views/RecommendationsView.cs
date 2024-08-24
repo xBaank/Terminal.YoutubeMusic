@@ -52,7 +52,6 @@ internal class RecommendationsView(
                     try
                     {
                         Application.Invoke(() => queueView.ShowLoading());
-                        queueView.ChangeTitle(item.Title);
                         await playerController.SetAsync(item, sharedCancellationTokenSource.Token);
                         await playerController.PlayAsync();
                         Application.Invoke(() => queueView.HideLoading());

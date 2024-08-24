@@ -59,7 +59,6 @@ internal class LocalPlaylistsView : Loader
                             .WhereNotNull()
                             .ToList() ?? [];
 
-                    queueView.ChangeTitle(item.Name);
                     await playerController.SetAsync(songs, sharedCancellationTokenSource.Token);
                     await playerController.PlayAsync();
 

@@ -13,7 +13,7 @@ internal class QueueView(
     IServiceProvider serviceProvider
 ) : Loader(view)
 {
-    private ListView _listView =
+    private readonly ListView _listView =
         new()
         {
             X = 1,
@@ -71,8 +71,6 @@ internal class QueueView(
         View.RemoveAll();
         View.Add(_listView);
     }
-
-    public void ChangeTitle(string text) => View.Title = $"Playlist: {text}";
 
     public void ShowQueue()
     {

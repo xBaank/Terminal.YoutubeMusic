@@ -1,4 +1,7 @@
 ﻿using System.Data;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Reflection;
 using CliFx;
 using CliFx.Attributes;
@@ -25,6 +28,11 @@ internal class MainCommand : ICommand
     [CommandOption("account-index", Description = "Youtube music account index")]
     public int? AccountIndex { get; set; } = null;
 
+    [SuppressMessage(
+        "Trimming",
+        "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code",
+        Justification = "<Pending>"
+    )]
     public async ValueTask ExecuteAsync(IConsole console)
     {
         const string connectionString = "Data Source=data.db";
@@ -46,22 +54,10 @@ internal class MainCommand : ICommand
         };
 
         Colors.ColorSchemes["Menu"] = customColors;
-
-        var queueWin = new Window
-        {
-            Title = "Playlist",
-            X = 0,
-            BorderStyle = LineStyle.Rounded,
-            Y = 1,
-            Width = Dim.Percent(20),
-            Height = Dim.Fill(),
-            ColorScheme = customColors
-        };
-
         var searchWin = new Window
         {
             Title = "Search",
-            X = Pos.Right(queueWin),
+            X = 0,
             BorderStyle = LineStyle.Rounded,
             Y = 0,
             Width = Dim.Fill(),
@@ -71,7 +67,7 @@ internal class MainCommand : ICommand
 
         var videosWin = new View
         {
-            X = Pos.Right(queueWin),
+            X = 0,
             Y = Pos.Bottom(searchWin),
             Width = Dim.Fill(),
             Height = Dim.Fill()! - 8,
@@ -81,7 +77,7 @@ internal class MainCommand : ICommand
         var playerWin = new Window
         {
             Title = "Player",
-            X = Pos.Right(queueWin),
+            X = 0,
             BorderStyle = LineStyle.Rounded,
             Y = Pos.AnchorEnd(8),
             Height = 7,
@@ -99,13 +95,18 @@ internal class MainCommand : ICommand
         var localPlaylistsTab = new Tab { DisplayText = "Saved playlists" }
             .WithPos(0)
             .WithFill();
+        var playlistTab = new Tab { DisplayText = "Playlist" }
+            .WithPos(0)
+            .WithFill();
 
         resultsTab.View = new View().WithPos(0).WithFill();
         recommendationsTab.View = new View().WithPos(0).WithFill();
         localPlaylistsTab.View = new View().WithPos(0).WithFill();
+        playlistTab.View = new View().WithPos(0).WithFill();
 
         tabView.AddTab(recommendationsTab, true);
         tabView.AddTab(resultsTab, false);
+        tabView.AddTab(playlistTab, false);
         tabView.AddTab(localPlaylistsTab, false);
 
         videosWin.Add(tabView);
@@ -140,7 +141,7 @@ internal class MainCommand : ICommand
             .AddSingleton(provider =>
             {
                 var playerController = provider.GetRequiredService<PlayerController>();
-                return new QueueView(queueWin, playerController, provider);
+                return new QueueView(playlistTab.View, playerController, provider);
             })
             .AddSingleton(provider =>
             {
@@ -201,7 +202,7 @@ internal class MainCommand : ICommand
         using var settingsRepository = serviceProvider.GetRequiredService<SettingsRepository>();
         await settingsRepository.InitializeAsync();
 
-        top.Add(queueWin, searchWin, videosWin, playerWin, statusBarFactory.Create());
+        top.Add(searchWin, videosWin, playerWin, statusBarFactory.Create());
 
         Application.Init();
 

@@ -1,15 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-	<UseAppHost>true</UseAppHost> 
+    <UseAppHost>true</UseAppHost>
     <PublishTrimmed>true</PublishTrimmed>
     <TargetFramework>net8.0</TargetFramework>
-	<RuntimeIdentifiers>linux-x64;linux-arm64;osx-x64;osx-arm64;win-x64;win-x86;win-arm64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>linux-x64;linux-arm64;osx-x64;osx-arm64;win-x64;win-x86;win-arm64</RuntimeIdentifiers>
     <ImplicitUsings>enable</ImplicitUsings>
-	<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);Dapper.AOT</InterceptorsPreviewNamespaces>
+    <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="scripts\migrations\2024081401_Initial.sql" />
@@ -30,20 +31,24 @@
     <PackageReference Include="PortAudioSharp" Version="0.3.0" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="Terminal.Gui" Version="2.0.0-prealpha.216" />
+    <PackageReference Include="Terminal.Gui" Version="2.0.0-v2-develop.2203" />
     <PackageReference Include="YoutubeExplodeMusic" Version="6.4.0-music.1" />
   </ItemGroup>
-	
- <ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Tests" />
- </ItemGroup>
-	
- <ItemGroup>
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="Scripts/Migrations/*.sql" />
- </ItemGroup>
-	
-		 
- <PropertyGroup>
+  </ItemGroup>
+
+  <ItemGroup>
+    <TrimmerRootAssembly Include="Terminal.Gui" />
+  </ItemGroup>
+
+
+  <PropertyGroup>
     <PortAudioPlatform>$(RuntimeIdentifier)</PortAudioPlatform>
     <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('Windows')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">win-arm64</PortAudioPlatform>
     <PortAudioPlatform Condition="'$(PortAudioPlatform)' == '' AND $([MSBuild]::IsOsPlatform('Windows')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X86'">win-x86</PortAudioPlatform>

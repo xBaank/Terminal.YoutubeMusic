@@ -19,6 +19,8 @@ internal class VideoSearchView(View view, VideosResultsView videosResults, Playe
             Height = Dim.Fill(),
         };
 
+        videosResults.ShowVideos([]);
+
         textField.KeyUp += (_, args) =>
         {
             if (args.KeyCode != Key.Enter)
