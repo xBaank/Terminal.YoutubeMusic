@@ -64,13 +64,13 @@
   </PropertyGroup>
 
   <Target Name="Download PortAudio before build" BeforeTargets="PreBuildEvent">
-    <Exec Command="pwsh -ExecutionPolicy Bypass -File &quot;$(ProjectDir)/DownloadPortAudioBin.ps1&quot; -Platform $(PortAudioPlatform) -OutputPath &quot;$(ProjectDir)/$(PortAudioFileName)&quot;" LogStandardErrorAsError="true" />
-    <Copy SourceFiles="$(ProjectDir)/$(PortAudioFileName)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <Exec Command="pwsh -ExecutionPolicy Bypass -File &quot;$(ProjectDir)\DownloadPortAudioBin.ps1&quot; -Platform $(PortAudioPlatform) -OutputPath &quot;$(ProjectDir)\$(PortAudioFileName)&quot;" LogStandardErrorAsError="true" />
+    <Copy SourceFiles="$(ProjectDir)\$(PortAudioFileName)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
   </Target>
 
   <Target Name="Download PortAudio before publish" BeforeTargets="PrepareForPublish">
-    <Exec Command="pwsh -ExecutionPolicy Bypass -File &quot;$(ProjectDir)/DownloadPortAudioBin.ps1&quot; -Platform $(PortAudioPlatform) -OutputPath &quot;$(ProjectDir)/$(PortAudioFileName)&quot;" LogStandardErrorAsError="true" />
-    <Copy SourceFiles="$(ProjectDir)/$(PortAudioFileName)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+    <Exec Command="pwsh -ExecutionPolicy Bypass -File &quot;$(ProjectDir)\DownloadPortAudioBin.ps1&quot; -Platform $(PortAudioPlatform) -OutputPath &quot;$(ProjectDir)\$(PortAudioFileName)&quot;" LogStandardErrorAsError="true" />
+    <Copy SourceFiles="$(ProjectDir)\$(PortAudioFileName)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
   </Target>
 
 </Project>
