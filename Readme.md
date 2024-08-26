@@ -36,9 +36,6 @@ and then running `Console --cookies-path path_to_cookies.txt`
 > Expect bugs, crashes, sound glitches, etc.
 - There is no stable release yet but you can download the latest [commit](https://nightly.link/xBaank/Terminal.YoutubeMusic/workflows/dotnet/main/YoutubeConsole.zip)
 
-## Building requirements
-- Install powershell core
-
 ## Dependencies
 - Terminal.gui v2
 - YoutubeExplode
