@@ -44,7 +44,6 @@ internal class StatusBarFactory(
                     }
                 ),
                 new Shortcut(Key.P.WithCtrl, "Player", playerView.SetFocus),
-                new Shortcut(Key.M.WithCtrl, "Playlist", queueView.View.SetFocus),
                 new Shortcut(
                     Key.P.WithAlt,
                     "Save Playlist",

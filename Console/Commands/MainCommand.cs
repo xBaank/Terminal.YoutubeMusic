@@ -1,8 +1,5 @@
 ﻿using System.Data;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.Reflection;
 using CliFx;
 using CliFx.Attributes;
 using CliFx.Infrastructure;
@@ -11,7 +8,6 @@ using Console.Cookies;
 using Console.Extensions;
 using Console.Repositories;
 using Console.Views;
-using DbUp;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Terminal.Gui;

@@ -1,6 +1,5 @@
 ﻿using System.Reflection;
 using DbUp;
-using NativeLibraryManager;
 using PortAudioSharp;
 using Terminal.Gui;
 
