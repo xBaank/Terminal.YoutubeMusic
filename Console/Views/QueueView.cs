@@ -35,11 +35,7 @@ internal class QueueView(
         if (songs.Count == 0)
             return;
 
-        var name = Utils.ShowInputDialog(
-            "Playlist name",
-            "Give the playlist a name",
-            View.ColorScheme
-        );
+        var name = Utils.ShowInputDialog("Playlist name", "Give the playlist a name");
 
         if (name is null)
             return;

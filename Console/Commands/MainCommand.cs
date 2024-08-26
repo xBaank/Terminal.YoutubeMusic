@@ -16,6 +16,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Terminal.Gui;
 using YoutubeExplode;
+using static Console.Utils;
 
 namespace Console.Commands;
 
@@ -45,15 +46,7 @@ internal class MainCommand : ICommand
 
         var top = new Toplevel();
 
-        var customColors = new ColorScheme
-        {
-            Normal = new Terminal.Gui.Attribute(Color.Parse("#FFFFFF"), Color.Parse("#1C1C1C")), // White on Dark Gray
-            HotNormal = new Terminal.Gui.Attribute(Color.Parse("#FFD700"), Color.Parse("#1C1C1C")), // Gold on Dark Gray
-            Focus = new Terminal.Gui.Attribute(Color.Parse("#FF4500"), Color.Parse("#1C1C1C")), // OrangeRed on Dark Gray
-            HotFocus = new Terminal.Gui.Attribute(Color.Parse("#FF6347"), Color.Parse("#1C1C1C")) // Tomato on Dark Gray
-        };
-
-        Colors.ColorSchemes["Menu"] = customColors;
+        Colors.ColorSchemes["Menu"] = CustomColor;
         var searchWin = new Window
         {
             Title = "Search",
@@ -62,7 +55,7 @@ internal class MainCommand : ICommand
             Y = 0,
             Width = Dim.Fill(),
             Height = 3,
-            ColorScheme = customColors
+            ColorScheme = CustomColor
         };
 
         var videosWin = new View
@@ -71,7 +64,7 @@ internal class MainCommand : ICommand
             Y = Pos.Bottom(searchWin),
             Width = Dim.Fill(),
             Height = Dim.Fill()! - 8,
-            ColorScheme = customColors
+            ColorScheme = CustomColor
         };
 
         var playerWin = new Window
@@ -81,7 +74,7 @@ internal class MainCommand : ICommand
             BorderStyle = LineStyle.Rounded,
             Y = Pos.AnchorEnd(8),
             Height = 7,
-            ColorScheme = customColors
+            ColorScheme = CustomColor
         };
 
         var tabView = new TabView().WithPos(0).WithFill();

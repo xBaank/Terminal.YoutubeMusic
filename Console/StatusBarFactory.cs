@@ -57,8 +57,7 @@ internal class StatusBarFactory(
                     {
                         var result = Utils.ShowInputDialog(
                             "Seek time",
-                            "Enter seek time with the format : HH:MM:SS",
-                            queueView.View.ColorScheme
+                            "Enter seek time with the format : HH:MM:SS"
                         );
 
                         if (result is null)
