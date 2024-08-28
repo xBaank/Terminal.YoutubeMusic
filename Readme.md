@@ -1,7 +1,7 @@
 # Terminal.YoutubeMusic [WIP]
 Listen to youtube music from the terminal
 
-![imagen](https://github.com/user-attachments/assets/2be7eb04-6baa-43b0-938d-8a6354a2f387)
+![imagen](https://github.com/user-attachments/assets/f588ad79-3fae-4f8c-b7d3-e4570b01bdb3)
 
 ## TODO
 - [ ] Download playlists locally
