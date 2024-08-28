@@ -86,6 +86,14 @@ jobs:
       if: ${{ !startsWith(matrix.rid, 'win-') }}
       run: chmod +x  ./Console/output/Console
 
+    - name: Rename file
+      if: ${{ !startsWith(matrix.rid, 'win-') }}
+      run: |
+        FILE=$(find ./Console/output -type f -name 'Console*')
+        if [ -f "$FILE" ]; then
+          mv "$FILE" "./Console/output/Console-${{ matrix.rid }}}"
+        fi
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
