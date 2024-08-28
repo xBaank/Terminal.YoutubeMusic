@@ -13,5 +13,9 @@ public static class Program
     [RequiresUnreferencedCode("Calls Terminal.Gui.Application.Init(ConsoleDriver, String)")]
     [RequiresDynamicCode("Calls Terminal.Gui.Application.Init(ConsoleDriver, String)")]
     public static async Task<int> Main() =>
-        await new CliApplicationBuilder().AddCommand<MainCommand>().Build().RunAsync();
+        await new CliApplicationBuilder()
+            .SetExecutableName("Terminal.YoutubeMusic")
+            .AddCommand<MainCommand>()
+            .Build()
+            .RunAsync();
 }
