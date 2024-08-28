@@ -65,7 +65,7 @@ jobs:
           - osx-arm64
           - osx-x64
 
-    runs-on: ${{ startsWith(matrix.rid, 'win-') && 'windows-latest' || startsWith(matrix.rid, 'osx-') && 'macos-latest' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
 
     permissions:
@@ -87,7 +87,6 @@ jobs:
       run: chmod +x  ./Console/output/Console
 
     - name: Rename file
-      if: ${{ !startsWith(matrix.rid, 'win-') }}
       run: |
         FILE=$(find ./Console/output -type f -name 'Console*')
         if [ -f "$FILE" ]; then
