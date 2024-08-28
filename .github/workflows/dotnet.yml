@@ -90,10 +90,14 @@ jobs:
       run: |
         FILE=$(find ./Console/output -type f -name 'Console*')
         if [ -f "$FILE" ]; then
-          EXTENSION="${FILE##*.}"  # Extract the file extension
-          mv "$FILE" "./Console/output/Console-${{ matrix.rid }}.$EXTENSION"  # Rename while preserving extension
+          FILENAME=$(basename -- "$FILE")                    # Extract the file name
+          EXTENSION="${FILENAME##*.}"                        # Extract the file extension
+          if [ "$EXTENSION" != "$FILENAME" ]; then           # Check if an extension exists
+            mv "$FILE" "./Console/output/Console-${{ matrix.rid }}.$EXTENSION"  # Rename with extension
+          else
+            mv "$FILE" "./Console/output/Console-${{ matrix.rid }}"            # Rename without extension
+          fi
         fi
-
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
