@@ -1,7 +1,7 @@
 # Terminal.YoutubeMusic [WIP]
 Listen to youtube music from the terminal
 
-![imagen](https://github.com/user-attachments/assets/2be7eb04-6baa-43b0-938d-8a6354a2f387)
+![imagen](https://github.com/user-attachments/assets/f588ad79-3fae-4f8c-b7d3-e4570b01bdb3)
 
 ## TODO
 - [ ] Download playlists locally
@@ -14,7 +14,6 @@ Listen to youtube music from the terminal
 - [X] Improve queue so you can go to any video without skiping one by one
 
 ## Requirements
-- .NET 8
 - Terminal
 - Windows, Mac or Linux
 
@@ -35,9 +34,3 @@ and then running `Console --cookies-path path_to_cookies.txt`
 > [!WARNING]\
 > Expect bugs, crashes, sound glitches, etc.
 - There is no stable release yet but you can download the latest [commit](https://nightly.link/xBaank/Terminal.YoutubeMusic/workflows/dotnet/main/YoutubeConsole.zip)
-
-## Dependencies
-- Terminal.gui v2
-- YoutubeExplode
-- Opentk
-- Concentus
