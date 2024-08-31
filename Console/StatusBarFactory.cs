@@ -24,7 +24,7 @@ internal class StatusBarFactory(
                         Application.RequestStop();
                     }
                 ),
-                new Shortcut(Key.Q.WithCtrl, "Search", searchView.SetFocus),
+                new Shortcut(Key.Q.WithCtrl, "Search", () => searchView.SetFocus()),
                 new Shortcut(
                     Key.L.WithCtrl,
                     "Rotate tabs",
@@ -43,7 +43,7 @@ internal class StatusBarFactory(
                         tabView.EnsureSelectedTabIsVisible();
                     }
                 ),
-                new Shortcut(Key.P.WithCtrl, "Player", playerView.SetFocus),
+                new Shortcut(Key.P.WithCtrl, "Player", () => playerView.SetFocus()),
                 new Shortcut(
                     Key.P.WithAlt,
                     "Save Playlist",
