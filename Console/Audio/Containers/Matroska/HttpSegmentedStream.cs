@@ -57,7 +57,7 @@ internal sealed class HttpSegmentedStream : Stream
             downloadUrlHandler,
             httpClient,
             initialPos,
-            Math.Min((await downloadUrlHandler.GetSize()) / 3, 3_000_00)
+            (int)Math.Min((await downloadUrlHandler.GetSize()) / 3, 3_000_00)
         );
     }
 
