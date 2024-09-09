@@ -34,7 +34,7 @@
     <PackageReference Include="PortAudioSharp" Version="0.3.0" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="Terminal.Gui" Version="2.0.0-prealpha.407" />
+    <PackageReference Include="Terminal.Gui" Version="2.0.0-prealpha.1" />
     <PackageReference Include="YoutubeExplodeMusic" Version="6.4.0-music.1" />
     <PackageReference Include="PortAudio.Native" Version="19.7.0-build20240826111929" />
   </ItemGroup>
