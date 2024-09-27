@@ -3,11 +3,13 @@ using Terminal.Gui;
 
 namespace Console.Views;
 
-public class VideoSearchView(Window win, VideosResultsView videosResults, PlayerController player)
+internal class VideoSearchView(View view, VideosResultsView videosResults, PlayerController player)
 {
+    private CancellationTokenSource _cancellationTokenSource = new();
+
     public void ShowSearch()
     {
-        win.RemoveAll();
+        view.RemoveAll();
 
         var textField = new TextField
         {
@@ -16,6 +18,8 @@ public class VideoSearchView(Window win, VideosResultsView videosResults, Player
             Width = Dim.Fill(),
             Height = Dim.Fill(),
         };
+
+        videosResults.ShowVideos([]);
 
         textField.KeyUp += (_, args) =>
         {
@@ -29,14 +33,20 @@ public class VideoSearchView(Window win, VideosResultsView videosResults, Player
                 if (text is null)
                     return;
 
-                videosResults.ShowLoading();
-                var results = await player.SearchAsync(text);
-                videosResults.HideLoading();
-
-                videosResults.ShowVideos(results);
+                _cancellationTokenSource.Cancel();
+                _cancellationTokenSource = new CancellationTokenSource();
+                try
+                {
+                    videosResults.SetFocus();
+                    videosResults.ShowLoading();
+                    var results = await player.SearchAsync(text, _cancellationTokenSource.Token);
+                    videosResults.HideLoading();
+                    videosResults.ShowVideos(results);
+                }
+                catch (TaskCanceledException) { }
             });
         };
 
-        win.Add(textField);
+        view.Add(textField);
     }
 }

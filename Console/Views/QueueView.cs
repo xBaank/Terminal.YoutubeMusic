@@ -1,29 +1,76 @@
 ﻿using System.Collections.ObjectModel;
 using Console.Audio;
 using Console.Extensions;
+using Console.Repositories;
+using Microsoft.Extensions.DependencyInjection;
 using Terminal.Gui;
 
 namespace Console.Views;
 
-public class QueueView(Window win, PlayerController playerController)
+internal class QueueView(
+    View view,
+    PlayerController playerController,
+    IServiceProvider serviceProvider
+) : Loader(view)
 {
-    public void ShowQueue()
-    {
-        win.RemoveAll();
-
-        var listView = new ListView()
+    private readonly ListView _listView =
+        new()
         {
             X = 1,
             Y = 1,
             Width = Dim.Fill(),
-            Height = Dim.Fill(),
+            Height = Dim.Fill()
         };
 
-        listView.SetSource(new ObservableCollection<string>());
+    public override void HideLoading()
+    {
+        UpdateList();
+        base.HideLoading();
+    }
 
-        win.Add(listView);
+    public async Task SavePlaylist()
+    {
+        var songs = playerController.Songs;
 
-        listView.OpenSelectedItem += async (_, args) =>
+        if (songs.Count == 0)
+            return;
+
+        var name = Utils.ShowInputDialog("Playlist name", "Give the playlist a name");
+
+        if (name is null)
+            return;
+
+        await using var scope = serviceProvider.CreateAsyncScope();
+        using var repo = scope.ServiceProvider.GetRequiredService<LocalPlaylistsRepository>();
+        var localPlaylistsView = scope.ServiceProvider.GetRequiredService<LocalPlaylistsView>();
+        await repo.SavePlaylist(name, songs);
+        localPlaylistsView.ShowLocalPlaylists();
+    }
+
+    void UpdateList()
+    {
+        _listView.SetSource(
+            new ObservableCollection<string>(
+                playerController
+                    .Songs.Select(
+                        (i, index) =>
+                        {
+                            return playerController.Song == i
+                                ? $"Playing [{index}] {i.Title.Sanitize()}"
+                                : $"[{index}] {i.Title.Sanitize()}";
+                        }
+                    )
+                    .ToList()
+            )
+        );
+
+        View.RemoveAll();
+        View.Add(_listView);
+    }
+
+    public void ShowQueue()
+    {
+        _listView.OpenSelectedItem += async (_, args) =>
         {
             var song = playerController.Songs.ElementAtOrDefault(args.Item);
 
@@ -36,24 +83,6 @@ public class QueueView(Window win, PlayerController playerController)
                 await playerController.PlayAsync();
             });
         };
-
-        void UpdateList()
-        {
-            listView.SetSource(
-                new ObservableCollection<string>(
-                    playerController
-                        .Songs.Select(
-                            (i, index) =>
-                            {
-                                return playerController.Song == i
-                                    ? $"Playing [{index}] {i.Title.Sanitize()}"
-                                    : $"[{index}] {i.Title.Sanitize()}";
-                            }
-                        )
-                        .ToList()
-                )
-            );
-        }
 
         playerController.StateChanged += UpdateList;
         playerController.QueueChanged += (_) => UpdateList();

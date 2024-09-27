@@ -3,5 +3,5 @@
 public interface IDownloadUrlHandler
 {
     Task<string> GetUrl();
-    Task<int> GetSize();
+    Task<long> GetSize();
 }

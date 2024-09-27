@@ -1,76 +1,114 @@
 using Console.Audio.Containers.Matroska;
 using Console.Audio.DownloadHandlers;
+using Console.Repositories;
 using Nito.AsyncEx;
 using Nito.Disposables.Internals;
-using OpenTK.Audio.OpenAL;
-using Terminal.Gui;
 using YoutubeExplode;
 using YoutubeExplode.Search;
 using YoutubeExplode.Videos;
 
 namespace Console.Audio;
 
-public class PlayerController : IAsyncDisposable
+internal class PlayerController(YoutubeClient youtubeClient, SettingsRepository settingsRepository)
+    : IAsyncDisposable
 {
     private readonly AsyncLock _lock = new();
-
-    private float _volume = 0.5f;
-
-    private List<IVideo> _queue = [];
+    private readonly object _listLock = new();
+    private readonly YoutubeClient _youtubeClient = youtubeClient;
+    private readonly SettingsRepository _settingsRepository = settingsRepository;
+    private float _volume = -1f;
+    private PlayState _state = PlayState.Stopped;
+    private readonly List<IVideo> _queue = [];
     private int _currentSongIndex = 0;
-
-    private readonly ALDevice _device;
-    private readonly ALContext _context;
-    private readonly int _sourceId;
-    private readonly ALFormat _targetFormat;
     private Matroska? _matroskaPlayerBuffer = null;
     private AudioSender? _audioSender = null;
     private CancellationTokenSource _currentSongTokenSource = new();
+    private CancellationTokenSource _currentSettingsTokenSource = new();
     private bool _disposed = false;
-
-    private readonly YoutubeClient youtubeClient = new();
 
     public event Action? StateChanged;
     public event Action<IEnumerable<IVideo>>? QueueChanged; //Maybe emit state to show a loading spinner
     public event Action? OnFinish;
 
+    public PlayState State
+    {
+        get { return _state; }
+        set
+        {
+            _state = value;
+            if (_audioSender is not null)
+                _audioSender.State = (PlayState)value;
+        }
+    }
     public int Volume
     {
-        get { return (int)(_volume * 100); }
+        get
+        {
+            //Load volume if it wasnt loaded before
+            if (_volume < 0)
+                _volume = _settingsRepository.GetSettings().Volume / 100f;
+
+            return (int)(_volume * 100);
+        }
         set
         {
             if (value is < 0 or > 100)
                 return;
 
             _volume = value / 100f;
-            AL.Source(_sourceId, ALSourcef.Gain, _volume);
+            SaveVolume(value);
+
+            if (_audioSender is not null)
+                _audioSender.Volume = _volume;
         }
     }
 
-    public TimeSpan? Time => _matroskaPlayerBuffer?.CurrentTime;
-    public TimeSpan? TotalTime => _matroskaPlayerBuffer?.TotalTime ?? Song?.Duration;
-    public ALSourceState? State => SourceState();
-    public IVideo? Song => _queue.ElementAtOrDefault(_currentSongIndex);
-    public IReadOnlyCollection<IVideo> Songs => _queue;
-    public LoopState LoopState { get; set; }
-
-    public PlayerController()
+    private void SaveVolume(int value)
     {
-        _device = ALC.OpenDevice(Environment.GetEnvironmentVariable("DeviceName"));
-        _context = ALC.CreateContext(_device, new ALContextAttributes());
-        ALC.MakeContextCurrent(_context);
+        _currentSettingsTokenSource.Cancel();
+        _currentSettingsTokenSource = new();
 
-        var error = ALC.GetError(_device);
-        // Check for any errors
-        if (error != AlcError.NoError)
-        {
-            throw new Exception($"Error code: {error}");
-        }
-
-        _sourceId = AL.GenSource();
-        _targetFormat = ALFormat.Stereo16;
-        AL.Source(_sourceId, ALSourcef.Gain, _volume);
+        Task.Run(
+            async () =>
+            {
+                await Task.Delay(1000, _currentSettingsTokenSource.Token);
+                var settings = await _settingsRepository.GetSettingsAsync(
+                    _currentSettingsTokenSource.Token
+                );
+                settings.Volume = value;
+                await _settingsRepository.SaveSettingsAsync(
+                    settings,
+                    _currentSettingsTokenSource.Token
+                );
+            },
+            _currentSettingsTokenSource.Token
+        );
     }
+
+    public TimeSpan? Time => _audioSender?.CurrentTime;
+    public TimeSpan? TotalTime => _matroskaPlayerBuffer?.TotalTime ?? Song?.Duration;
+    public IVideo? Song
+    {
+        get
+        {
+            lock (_listLock)
+            {
+                return _queue.ElementAtOrDefault(_currentSongIndex);
+            }
+        }
+    }
+
+    public IReadOnlyCollection<IVideo> Songs
+    {
+        get
+        {
+            lock (_listLock)
+            {
+                return _queue.ToList().AsReadOnly(); // Avoid direct access to _queue
+            }
+        }
+    }
+    public LoopState LoopState { get; set; }
 
     public async ValueTask DisposeAsync()
     {
@@ -82,9 +120,6 @@ public class PlayerController : IAsyncDisposable
         _disposed = true;
 
         await StopAsync().ConfigureAwait(false);
-        ALC.DestroyContext(_context);
-        ALC.CloseDevice(_device);
-        AL.DeleteSource(_sourceId);
 
         if (_matroskaPlayerBuffer is not null)
         {
@@ -95,6 +130,8 @@ public class PlayerController : IAsyncDisposable
         {
             await _audioSender.DisposeAsync().ConfigureAwait(false);
         }
+
+        _settingsRepository.Dispose();
 
         // Suppress finalization
         GC.SuppressFinalize(this);
@@ -108,82 +145,122 @@ public class PlayerController : IAsyncDisposable
             await _matroskaPlayerBuffer.Seek((long)time.TotalMilliseconds);
     }
 
-    public async Task<List<ISearchResult>> SearchAsync(string query) =>
-        await youtubeClient.Search.GetResultsAsync(query).Take(50).ToListAsync();
+    public async Task<List<ISearchResult>> SearchAsync(
+        string query,
+        CancellationToken token = default
+    ) =>
+        await _youtubeClient
+            .Search.GetResultsAsync(query, token)
+            .Take(50)
+            .ToListAsync(cancellationToken: token);
 
     public async Task<List<Recommendation>> GetRecommendationsAsync() =>
-        await youtubeClient.Search.GetRecommendationsAsync().ToListAsync();
+        await _youtubeClient.Search.GetRecommendationsAsync().ToListAsync();
+
+    private void ResetState()
+    {
+        State = PlayState.Stopped;
+        _audioSender?.ClearBuffer();
+        _currentSongTokenSource.Cancel();
+    }
 
     public async Task SkipToAsync(IVideo video)
     {
         using var _ = await _lock.LockAsync();
-        AL.SourceStop(_sourceId);
-        _audioSender?.ClearBuffer();
-        _currentSongTokenSource.Cancel();
+
+        ResetState();
         _currentSongIndex = _queue.IndexOf(video);
     }
 
-    public async Task SetAsync(Recommendation recommendation)
+    public async Task SetAsync(
+        IReadOnlyCollection<IVideo> videos,
+        CancellationToken cancellationToken = default
+    )
     {
-        using var _ = await _lock.LockAsync();
+        using var _ = await _lock.LockAsync(cancellationToken);
 
-        AL.SourceStop(_sourceId);
-        _audioSender?.ClearBuffer();
-        _currentSongTokenSource.Cancel();
+        ResetState();
         _currentSongIndex = 0;
 
-        var firstVideo = recommendation.VideoId is not null
-            ? await youtubeClient.Videos.GetAsync(recommendation.VideoId.Value)
-            : null;
-
-        var playlist = await youtubeClient
-            .Playlists.GetVideosAsync(recommendation.PlaylistId)
-            .ToListAsync();
-
-        _queue = [firstVideo, .. playlist];
-        _queue = _queue.WhereNotNull().DistinctBy(i => i.Id).ToList(); //Remove duplicate videos
+        lock (_listLock)
+        {
+            _queue.Clear();
+            _queue.AddRange(videos);
+        }
         QueueChanged?.Invoke(_queue);
     }
 
-    public async Task SetAsync(ISearchResult item)
+    public async Task SetAsync(
+        Recommendation recommendation,
+        CancellationToken cancellationToken = default
+    )
     {
-        using var _ = await _lock.LockAsync();
+        using var _ = await _lock.LockAsync(cancellationToken);
 
-        AL.SourceStop(_sourceId);
-        _audioSender?.ClearBuffer();
-        _currentSongTokenSource.Cancel();
+        ResetState();
+        _currentSongIndex = 0;
+
+        var firstVideo = recommendation.VideoId is not null
+            ? await _youtubeClient.Videos.GetAsync(recommendation.VideoId.Value, cancellationToken)
+            : null;
+
+        var playlist = await _youtubeClient
+            .Playlists.GetVideosAsync(recommendation.PlaylistId, cancellationToken)
+            .Take(200)
+            .ToListAsync(cancellationToken: cancellationToken);
+
+        lock (_listLock)
+        {
+            _queue.Clear();
+            IVideo?[] allVideos = [firstVideo, .. playlist];
+            _queue.AddRange(allVideos.WhereNotNull().DistinctBy(i => i.Id));
+        }
+        QueueChanged?.Invoke(_queue);
+    }
+
+    public async Task SetAsync(ISearchResult item, CancellationToken cancellationToken = default)
+    {
+        using var _ = await _lock.LockAsync(cancellationToken);
+
+        ResetState();
         _currentSongIndex = 0;
 
         if (item is VideoSearchResult videoSearchResult)
         {
-            _queue = [videoSearchResult];
+            lock (_listLock)
+            {
+                _queue.Clear();
+                _queue.Add(videoSearchResult);
+            }
         }
 
         if (item is PlaylistSearchResult playlistSearchResult)
         {
-            var videos = await youtubeClient
-                .Playlists.GetVideosAsync(playlistSearchResult.Id)
-                .ToListAsync<IVideo>();
+            var videos = await _youtubeClient
+                .Playlists.GetVideosAsync(playlistSearchResult.Id, cancellationToken)
+                .ToListAsync<IVideo>(cancellationToken: cancellationToken);
 
-            _queue = videos;
+            lock (_listLock)
+            {
+                _queue.Clear();
+                _queue.AddRange(videos);
+            }
         }
 
         if (item is ChannelSearchResult channelSearchResult)
         {
-            var videos = await youtubeClient
-                .Channels.GetUploadsAsync(channelSearchResult.Id)
-                .ToListAsync<IVideo>();
+            var videos = await _youtubeClient
+                .Channels.GetUploadsAsync(channelSearchResult.Id, cancellationToken)
+                .ToListAsync<IVideo>(cancellationToken: cancellationToken);
 
-            _queue = videos;
+            lock (_listLock)
+            {
+                _queue.Clear();
+                _queue.AddRange(videos);
+            }
         }
 
         QueueChanged?.Invoke(_queue);
-    }
-
-    private ALSourceState SourceState()
-    {
-        AL.GetSource(_sourceId, ALGetSourcei.SourceState, out int stateInt);
-        return (ALSourceState)stateInt;
     }
 
     public async Task PlayAsync()
@@ -193,15 +270,15 @@ public class PlayerController : IAsyncDisposable
         if (Song is null)
             return;
 
-        if (SourceState() == ALSourceState.Playing)
+        if (State == PlayState.Playing)
         {
             return;
         }
 
-        if (SourceState() == ALSourceState.Paused)
+        if (State == PlayState.Paused)
         {
             StateChanged?.Invoke();
-            AL.SourcePlay(_sourceId);
+            State = PlayState.Playing;
             return;
         }
 
@@ -212,21 +289,24 @@ public class PlayerController : IAsyncDisposable
             await _matroskaPlayerBuffer.DisposeAsync();
 
         _currentSongTokenSource = new CancellationTokenSource();
-
-        _audioSender = new AudioSender(_sourceId, _targetFormat);
+        _audioSender = new AudioSender(_volume, _state);
+        State = PlayState.Playing;
 
         try
         {
             _matroskaPlayerBuffer = await Matroska.Create(
-                new YtDownloadUrlHandler(youtubeClient, Song.Id),
+                new YtDownloadUrlHandler(_youtubeClient, Song.Id),
                 _audioSender,
                 _currentSongTokenSource.Token
             );
 
             _matroskaPlayerBuffer.OnFinish += async () =>
             {
+                _audioSender.WaitForEmptyBuffer = new();
+                await _audioSender.WaitForEmptyBuffer.Task;
                 _currentSongTokenSource.Cancel();
                 await _audioSender.DisposeAsync();
+                State = PlayState.Stopped;
                 OnFinish?.Invoke();
             };
 
@@ -242,6 +322,7 @@ public class PlayerController : IAsyncDisposable
             //This could happen if the video is too old and there is no opus support
             _currentSongTokenSource.Cancel();
             await _audioSender.DisposeAsync();
+            State = PlayState.Stopped;
             OnFinish?.Invoke();
         }
     }
@@ -262,7 +343,7 @@ public class PlayerController : IAsyncDisposable
                 _currentSongIndex = 0;
 
             _audioSender?.ClearBuffer();
-            AL.SourceStop(_sourceId);
+            State = PlayState.Stopped;
         }
     }
 
@@ -274,7 +355,8 @@ public class PlayerController : IAsyncDisposable
         {
             if (_currentSongIndex > 0)
                 _currentSongIndex--;
-            AL.SourceStop(_sourceId);
+            State = PlayState.Stopped;
+
             _audioSender?.ClearBuffer();
         }
     }
@@ -282,12 +364,12 @@ public class PlayerController : IAsyncDisposable
     public async Task PauseAsync()
     {
         using var _ = await _lock.LockAsync();
-        AL.SourcePause(_sourceId);
+        State = PlayState.Paused;
     }
 
     public async Task StopAsync()
     {
         using var _ = await _lock.LockAsync();
-        AL.SourceStop(_sourceId);
+        State = PlayState.Stopped;
     }
 }

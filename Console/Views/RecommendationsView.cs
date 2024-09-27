@@ -1,46 +1,24 @@
 ﻿using System.Data;
 using Console.Audio;
+using Console.Extensions;
 using Terminal.Gui;
-using YoutubeExplode.Search;
 
 namespace Console.Views;
 
-internal class RecommendationsView(View win, PlayerController playerController)
+internal class RecommendationsView(
+    View view,
+    PlayerController playerController,
+    QueueView queueView,
+    SharedCancellationTokenSource sharedCancellationTokenSource
+) : Loader(view)
 {
-    private SpinnerView? spinner = null;
-
-    public void ShowLoading()
-    {
-        win.RemoveAll();
-
-        spinner?.Dispose();
-        spinner = new SpinnerView
-        {
-            X = Pos.Center(),
-            Y = Pos.Center(),
-            Width = Dim.Auto(),
-            Height = Dim.Auto(),
-            Visible = true,
-            Style = new SpinnerStyle.BouncingBall(),
-            AutoSpin = true,
-        };
-
-        win.Add(spinner);
-    }
-
-    public void HideLoading()
-    {
-        spinner?.Dispose();
-        win.Remove(spinner);
-    }
-
     public void ShowRecommendations() =>
         Task.Run(async () =>
         {
             Application.Invoke(() => ShowLoading());
             var recommendations = await playerController.GetRecommendationsAsync();
             Application.Invoke(() => HideLoading());
-            Application.Invoke(() => win.RemoveAll());
+            Application.Invoke(() => View.RemoveAll());
 
             var dataTable = new DataTable();
 
@@ -54,13 +32,12 @@ internal class RecommendationsView(View win, PlayerController playerController)
 
             var tableView = new TableView()
             {
-                X = 0,
-                Y = 0,
-                Width = Dim.Fill(),
-                Height = Dim.Fill(),
                 FullRowSelect = true,
                 Table = new DataTableSource(dataTable)
-            };
+            }
+                .WithPos(0)
+                .WithFill()
+                .WithCleanStyle();
 
             tableView.CellActivated += async (_, args) =>
             {
@@ -68,13 +45,21 @@ internal class RecommendationsView(View win, PlayerController playerController)
                 if (item is null)
                     return;
 
+                sharedCancellationTokenSource.Cancel();
+                sharedCancellationTokenSource.Reset();
                 await Task.Run(async () =>
                 {
-                    await playerController.SetAsync(item);
-                    await playerController.PlayAsync();
+                    try
+                    {
+                        Application.Invoke(() => queueView.ShowLoading());
+                        await playerController.SetAsync(item, sharedCancellationTokenSource.Token);
+                        await playerController.PlayAsync();
+                        Application.Invoke(() => queueView.HideLoading());
+                    }
+                    catch (TaskCanceledException) { }
                 });
             };
 
-            Application.Invoke(() => win.Add(tableView));
+            Application.Invoke(() => View.Add(tableView));
         });
 }

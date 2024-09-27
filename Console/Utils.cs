@@ -1,5 +1,6 @@
-﻿using System.Runtime.InteropServices;
-using OpenTK.Audio.OpenAL;
+﻿using System.Reflection;
+using DbUp;
+using PortAudioSharp;
 using Terminal.Gui;
 
 namespace Console;
@@ -10,21 +11,35 @@ public static class Utils
 
     public static void ConfigurePlatformDependencies()
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        PortAudio.Initialize();
+    }
+
+    public static readonly ColorScheme CustomColor =
+        new()
         {
-            OpenALLibraryNameContainer.OverridePath = "libopenal.so";
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            Normal = new Terminal.Gui.Attribute(Color.Parse("#FFFFFF"), Color.Parse("#1C1C1C")), // White on Dark Gray
+            HotNormal = new Terminal.Gui.Attribute(Color.Parse("#FFD700"), Color.Parse("#1C1C1C")), // Gold on Dark Gray
+            Focus = new Terminal.Gui.Attribute(Color.Parse("#FF4500"), Color.Parse("#1C1C1C")), // OrangeRed on Dark Gray
+            HotFocus = new Terminal.Gui.Attribute(Color.Parse("#FF6347"), Color.Parse("#1C1C1C")) // Tomato on Dark Gray
+        };
+
+    public static void PerformMigrations(string connectionString)
+    {
+        var upgrader = DeployChanges
+            .To.SQLiteDatabase(connectionString)
+            .WithScriptsEmbeddedInAssembly(Assembly.GetExecutingAssembly())
+            .LogToConsole()
+            .Build();
+
+        var result = upgrader.PerformUpgrade();
+
+        if (!result.Successful)
         {
-            OpenALLibraryNameContainer.OverridePath = "libopenal.dylib";
-        }
-        else
-        {
-            OpenALLibraryNameContainer.OverridePath = "soft_oal.dll";
+            throw result.Error;
         }
     }
 
-    public static string? ShowInputDialog(string title, string prompt, ColorScheme colorScheme)
+    public static string? ShowInputDialog(string title, string prompt)
     {
         if (_isShowing)
             return null;
@@ -37,13 +52,13 @@ public static class Utils
             Height = Dim.Auto(),
             Width = 70,
             Title = title,
-            ColorScheme = colorScheme
+            ColorScheme = CustomColor
         };
         var input = new TextField()
         {
             X = Pos.Center(),
             Y = 2,
-            Width = 10,
+            Width = Dim.Fill(5),
             Height = 1,
         };
         var buttons = new View

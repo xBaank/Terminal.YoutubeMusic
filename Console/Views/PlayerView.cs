@@ -1,11 +1,10 @@
 using Console.Audio;
 using Console.Extensions;
-using OpenTK.Audio.OpenAL;
 using Terminal.Gui;
 
 namespace Console.Views;
 
-public class PlayerView(Window win, PlayerController player)
+internal class PlayerView(Window win, PlayerController player)
 {
     private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
@@ -19,7 +18,7 @@ public class PlayerView(Window win, PlayerController player)
         win.RemoveAll();
         ResetTitle();
 
-        var baseContainer = new View { Height = Dim.Auto(), Width = Dim.Auto(), };
+        var baseContainer = new View { Height = Dim.Auto(), Width = Dim.Fill(), };
 
         var backButton = new Button
         {
@@ -156,10 +155,7 @@ public class PlayerView(Window win, PlayerController player)
 
         playPauseButton.Accept += async (_, args) =>
         {
-            if (player.State is null)
-                return;
-
-            if (player.State == ALSourceState.Playing)
+            if (player.State == PlayState.Playing)
             {
                 playPauseButton.Text = "play";
 

@@ -6,40 +6,19 @@ using YoutubeExplode.Search;
 
 namespace Console.Views;
 
-public class VideosResultsView(Tab tab, TabView tabView, PlayerController playerController)
+internal class VideosResultsView(
+    Tab tab,
+    TabView tabView,
+    PlayerController playerController,
+    QueueView queueView,
+    SharedCancellationTokenSource sharedCancellationTokenSource
+) : Loader(tab.View)
 {
-    private SpinnerView? spinner = null;
-    private View Win => tab.View;
-
-    public void ShowLoading()
-    {
-        Win.RemoveAll();
-        tabView.SelectedTab = tab;
-
-        spinner?.Dispose();
-        spinner = new SpinnerView
-        {
-            X = Pos.Center(),
-            Y = Pos.Center(),
-            Width = Dim.Auto(),
-            Height = Dim.Auto(),
-            Visible = true,
-            Style = new SpinnerStyle.BouncingBall(),
-            AutoSpin = true,
-        };
-
-        Win.Add(spinner);
-    }
-
-    public void HideLoading()
-    {
-        spinner?.Dispose();
-        Win.Remove(spinner);
-    }
+    public void SetFocus() => tabView.SelectedTab = tab;
 
     public void ShowVideos(List<ISearchResult> videoSearches)
     {
-        Win.RemoveAll();
+        View.RemoveAll();
 
         var dataTable = new DataTable();
 
@@ -80,15 +59,14 @@ public class VideosResultsView(Tab tab, TabView tabView, PlayerController player
 
         var tableView = new TableView()
         {
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill(),
             FullRowSelect = true,
             Table = new DataTableSource(dataTable)
-        };
+        }
+            .WithPos(0)
+            .WithFill()
+            .WithCleanStyle();
 
-        Win.Add(tableView);
+        View.Add(tableView);
 
         tableView.CellActivated += async (_, args) =>
         {
@@ -96,10 +74,18 @@ public class VideosResultsView(Tab tab, TabView tabView, PlayerController player
             if (item is null)
                 return;
 
+            sharedCancellationTokenSource.Cancel();
+            sharedCancellationTokenSource.Reset();
             await Task.Run(async () =>
             {
-                await playerController.SetAsync(item);
-                await playerController.PlayAsync();
+                try
+                {
+                    Application.Invoke(() => queueView.ShowLoading());
+                    await playerController.SetAsync(item, sharedCancellationTokenSource.Token);
+                    await playerController.PlayAsync();
+                    Application.Invoke(() => queueView.HideLoading());
+                }
+                catch (TaskCanceledException) { }
             });
         };
     }

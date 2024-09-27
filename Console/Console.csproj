@@ -1,23 +1,54 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-	<UseAppHost>false</UseAppHost> 
+    <UseAppHost>true</UseAppHost>
+    <PublishTrimmed>true</PublishTrimmed>
     <TargetFramework>net8.0</TargetFramework>
+    <RuntimeIdentifiers>linux-x64;linux-arm64;osx-x64;osx-arm64;win-x64;win-x86;win-arm64</RuntimeIdentifiers>
     <ImplicitUsings>enable</ImplicitUsings>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);Dapper.AOT</InterceptorsPreviewNamespaces>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <PublishSingleFile>true</PublishSingleFile>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="scripts\migrations\2024081401_Initial.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CliFx" Version="2.3.5" />
     <PackageReference Include="Concentus" Version="2.2.2" />
     <PackageReference Include="Concentus.Native" Version="1.5.2" />
+    <PackageReference Include="Dapper" Version="2.1.35" />
+    <PackageReference Include="Dapper.AOT" Version="1.0.31" />
+    <PackageReference Include="Dapper.Contrib" Version="2.0.78" />
+    <PackageReference Include="dbup-sqlite" Version="5.0.40" />
+    <PackageReference Include="Lazy.Fody" Version="1.11.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.8" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
     <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
-    <PackageReference Include="OpenTK.Audio.OpenAL" Version="4.8.2" />
-    <PackageReference Include="Silk.NET.OpenAL.Soft.Native" Version="1.23.1" />
+    <PackageReference Include="PortAudioSharp" Version="0.3.0" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="Terminal.Gui" Version="2.0.0-prealpha.1" />
-    <PackageReference Include="YoutubeExplodeMusic" Version="6.4.0-music.1" />
+    <PackageReference Include="YoutubeExplodeMusic" Version="6.4.1-music.3" />
+    <PackageReference Include="PortAudio.Native" Version="19.7.0-build20240826111929" />
   </ItemGroup>
+
   <ItemGroup>
-    <Folder Include="Youtube\Suggestions\" />
+    <InternalsVisibleTo Include="Tests" />
   </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Scripts/Migrations/*.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <TrimmerRootAssembly Include="Terminal.Gui" />
+  </ItemGroup>
+
 </Project>

@@ -47,14 +47,17 @@ internal sealed class HttpSegmentedStream : Stream
         base.Dispose(disposing);
     }
 
-    public static ValueTask<HttpSegmentedStream> Create(
+    public static async ValueTask<HttpSegmentedStream> Create(
         IDownloadUrlHandler downloadUrlHandler,
         long initialPos = 0
     )
     {
         var httpClient = new HttpClient();
-        return ValueTask.FromResult(
-            new HttpSegmentedStream(downloadUrlHandler, httpClient, initialPos, 3_000_000)
+        return new HttpSegmentedStream(
+            downloadUrlHandler,
+            httpClient,
+            initialPos,
+            (int)Math.Min((await downloadUrlHandler.GetSize()) / 3, 3_000_00)
         );
     }
 
